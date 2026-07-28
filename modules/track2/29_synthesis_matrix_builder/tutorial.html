@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Module 29: Synthesis Matrix Builder</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+<style>:root{--accent:#e0a030;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Module 29 — Track 2: Applied Layer — Beginner On-Ramp</span>Synthesis Matrix Builder</h1>
+
+  <div class="callout">
+    <strong>New to this course?</strong> You can start right here. This
+    module only needs <a href="../../track1/03_bibliographic_record_model/tutorial.html">Module 3</a> —
+    none of the search, screening, or statistics machinery from the rest
+    of the course. If you're writing your first thesis literature review
+    chapter, this is the module built for you.
+  </div>
+
+  <div class="prereq-tags">
+    <span class="status-badge">Prerequisites:</span>
+    <a href="../../../prerequisites/prereq_synthesis_vs_summary.html">Synthesis vs. Summary</a>
+  </div>
+
+  <h2><span class="section-num">00</span>Before You Start</h2>
+  <p>Read Prerequisite 9 first if you haven't — it explains, in plain
+  prose, the exact distinction this module turns into working code.</p>
+
+  <h2><span class="section-num">01</span>The Big Analogy</h2>
+  <div class="analogy-box">
+    <span class="label">Sorting laundry by owner vs. by type</span>
+    Three family members' laundry sits in three separate baskets, one per
+    person. Look at Basket A and you know everything Person A owns. But
+    you can't answer "how many blue shirts does this household have?"
+    without digging through all three baskets and mentally combining what
+    you find — that question was never organized for.
+    <br><br>
+    Now dump all three baskets onto the floor and re-sort by <em>type</em>:
+    a pile of shirts, a pile of pants, a pile of socks. Same laundry,
+    completely different question answered instantly — how many shirts,
+    what colors, anything unusual. Nothing about the clothes changed.
+    Only the sorting axis did.
+    <br><br>
+    <code>SynthesisMatrix</code> is the floor both piles get dumped onto.
+    <code>render_by_source()</code> is the three baskets. <code>render_by_theme()</code>
+    is the re-sorted piles — the moment a stack of separate summaries
+    becomes an actual argument.
+  </div>
+
+  <h2><span class="section-num">02</span>What Happens, Step by Step</h2>
+  <ol class="checklist">
+    <li>You register each source (<code>add_source()</code>) and each theme you've identified across your reading (<code>add_theme()</code>) — deciding your rows and columns on purpose, not ad hoc</li>
+    <li>For every source, under every theme it actually addresses, you add one short note (<code>add_note()</code>) — this is the row-by-row filling-in step, and it's the only place new information enters the matrix</li>
+    <li><code>render_by_source()</code> reads the matrix out row by row — this is what a first-draft "summary" looks like when you write it up</li>
+    <li><code>render_by_theme()</code> reads the exact same cells out column by column — this is what "synthesis" looks like, mechanically, from identical underlying notes</li>
+    <li><code>coverage()</code> counts how many sources touch each theme — the thin spots this exposes are exactly what Module 30 uses next</li>
+  </ol>
+
+  <h2><span class="section-num">03</span>A Map of the State</h2>
+  <div class="diagram-box">
+    <pre style="border:none; background:none; padding:0;"><code>              Self-reported     Objectively        Task-type
+              outcomes          measured outcomes  dependence
+Smith (2020)  "higher job            —                  —
+               satisfaction"
+Jones (2019)      —            "no significant           —
+                                 change in output"
+Lee (2021)    "increased       "decreased measured   "explicitly noted
+               self-reported    output on               the divergence
+               productivity"    collaborative tasks"    between task types"
+
+render_by_source(): walk ROWS  -> "Smith (2020): ... / Jones (2019): ...
+                                    / Lee (2021): ... ... ..."   (3 separate
+                                    paragraphs, Lee's 3 notes bunched together)
+
+render_by_theme():  walk COLUMNS -> "Self-reported outcomes: [Smith's note]
+                                      [Lee's note] / Objectively measured
+                                      outcomes: [Jones's note] [Lee's note]
+                                      / Task-type dependence: [Lee's note]"
+                                     (Lee's 3 notes now scattered across
+                                      3 different theme-paragraphs, next
+                                      to the OTHER sources on that theme)</code></pre>
+  </div>
+
+  <h2><span class="section-num">04</span>The Code, Explained</h2>
+  <pre><code>def render_by_source(self) -> str:
+    lines = []
+    for source in self.sources:                      # outer loop: SOURCES
+        notes = [self.cells.get((source.title, theme)) for theme in self.themes]
+        ...
+    return "\n".join(lines)
+
+def render_by_theme(self) -> str:
+    lines = []
+    for theme in self.themes:                         # outer loop: THEMES
+        for source in self.sources:
+            note = self.cells.get((source.title, theme))
+            ...
+    return "\n".join(lines)</code></pre>
+  <p>Same <code>self.cells</code> dictionary in both functions. The only
+  difference is which variable is the outer loop. That's the entire
+  mechanism — not a metaphor for the difference between summary and
+  synthesis, the actual, literal difference.</p>
+
+  <h2><span class="section-num">05</span>Limits / What You Cannot Do Yet</h2>
+  <div class="compare-grid">
+    <div class="compare-col cant">
+      <h4>Can't do yet</h4>
+      <ul>
+        <li>Write your actual thesis prose for you — a note like <code>"found no significant change"</code> still needs to become a real sentence you write</li>
+        <li>Decide what your themes should be — that's real analytical work only you (the reader) can do, this module just organizes what you've already decided</li>
+        <li>Detect if two sources genuinely contradict each other on a theme — that's Module 30's job, one step further</li>
+      </ul>
+    </div>
+    <div class="compare-col can">
+      <h4>Can do</h4>
+      <ul>
+        <li>Prove, with your own real notes, whether your draft is organized as summary or synthesis</li>
+        <li>Show you exactly where one source's findings split across multiple themes — information a source-by-source read hides</li>
+        <li>Surface which themes are thin (only one source addresses them) — often exactly where a thesis's own contribution belongs</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2><span class="section-num">06</span>Run It</h2>
+  <pre><code>python synthesis_matrix.py</code></pre>
+  <p>Expected output (deterministic, no network involved):</p>
+  <pre><code>All self-checks passed.
+
+render_by_source() — reading across rows: this IS a summary
+Smith (2020) (2020): reported higher job satisfaction under remote work
+Jones (2019) (2019): found no significant change in output per hour
+Lee (2021) (2021): found increased self-reported productivity found decreased measured output on collaborative tasks explicitly noted the divergence between task types
+
+render_by_theme() — reading down columns: this IS synthesis
+Self-reported outcomes: reported higher job satisfaction under remote work (Smith (2020), 2020) found increased self-reported productivity (Lee (2021), 2021)
+Objectively measured outcomes: found no significant change in output per hour (Jones (2019), 2019) found decreased measured output on collaborative tasks (Lee (2021), 2021)
+Task-type dependence: explicitly noted the divergence between task types (Lee (2021), 2021)
+
+Coverage — which themes are thin (few sources)
+  'Self-reported outcomes': 2 source(s)
+  'Objectively measured outcomes': 2 source(s)
+  'Task-type dependence': 1 source(s)</code></pre>
+
+  <h2><span class="section-num">07</span>Brain Exercise</h2>
+  <div class="brain-exercise">
+    <details>
+      <summary>Look at the render_by_source() output above. It's not badly written — the sentences are clear. So what, specifically, makes it "just a summary" and not synthesis?</summary>
+      <div class="answer">
+        Try the test from Prerequisite 9: delete the source names and read
+        it straight through. "Reported higher job satisfaction... found no
+        significant change in output... found increased self-reported
+        productivity, found decreased measured output, noted the
+        divergence..." — you can reorder those three chunks in any order
+        and lose nothing, because each one only relates to the source it
+        came from, not to the others. Now do the same to
+        <code>render_by_theme()</code>'s output: reordering "Self-reported
+        outcomes" and "Objectively measured outcomes" would break the
+        implicit argument building across them (self-report says one
+        thing, objective measures say another — that contrast <em>is</em>
+        the point). Order matters in synthesis because the paragraphs are
+        building on each other. Order doesn't matter in summary because
+        they aren't.
+      </div>
+    </details>
+  </div>
+
+  <h2><span class="section-num">08</span>There Are No Dumb Questions</h2>
+  <div class="qa-entry">
+    <div class="q">Do I have to code this up for my actual thesis, or can I just use a spreadsheet?</div>
+    <div class="a">A spreadsheet works completely fine for real use — rows as sources, columns as themes, exactly like this module's <code>cells</code> dict. This module exists to prove the mechanism is real and mechanical, not to insist you need Python for your thesis. If a spreadsheet already does this for you, you've already internalized the lesson.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">What if a source doesn't fit neatly into any of my themes?</div>
+    <div class="a">That's real, useful information, not a failure of the matrix — it might mean the source isn't as relevant as you thought, or that you're missing a theme your reading hasn't surfaced yet. Either way, a source with zero notes in the matrix is something worth deliberately deciding about, not something to force a cell for.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">How many themes is "enough" for a real thesis chapter?</div>
+    <div class="a">There's no fixed number — it depends entirely on your field and your sources. What matters mechanically is that every theme has more than one source contributing to it wherever possible; a theme with exactly one source (like "Task-type dependence" in this module's demo) is a real signal, and Module 30 uses that signal directly.</div>
+  </div>
+
+  <h2><span class="section-num">09</span>What's Next</h2>
+  <p>The matrix organizes what's already been written. Module 30 takes the
+  thin and contested spots this matrix surfaces and uses them to argue
+  toward one specific, defensible thesis research question — the funnel
+  structure a real thesis committee expects.</p>
+
+  <div class="module-footer-nav">
+    <div class="prev"><a href="../28_positioning_gap_statement_generator/tutorial.html">← Module 28: Positioning & Gap-Statement Generator</a></div>
+    <div class="next"><a href="../30_thesis_gap_funnel_builder/tutorial.html">Module 30: Thesis Gap-to-Research-Question Funnel Builder →</a></div>
+  </div>
+</div>
+</body>
+</html>
