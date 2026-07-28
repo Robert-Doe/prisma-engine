@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Module 3: Bibliographic Record Model</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+<style>:root{--accent:#5cb85c;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Module 3 — Track 1: Core Engine</span>Bibliographic Record Model</h1>
+
+  <div class="prereq-tags">
+    <span class="status-badge">Prerequisites:</span>
+    <a href="../../../prerequisites/prereq_bibliographic_metadata.html">Bibliographic Metadata & Identifiers</a>
+  </div>
+
+  <h2><span class="section-num">00</span>Before You Start</h2>
+  <p>Read Prerequisite 3 first — this module is the direct implementation
+  of "why normalization matters" from that page.</p>
+
+  <h2><span class="section-num">01</span>The Big Analogy</h2>
+  <div class="analogy-box">
+    <span class="label">Three delegates, one shared notepad</span>
+    Three witnesses describe the same event to a UN committee — one in
+    French, one in Mandarin, one in Arabic. Each account is complete and
+    correct in its own language, but nobody on the committee can compare
+    them side by side until a translator converts all three into one
+    shared working language. The translator doesn't change what was said —
+    they change the <em>shape</em> it's expressed in, so it becomes
+    comparable.
+    <br><br>
+    <code>parse_ris()</code>, <code>parse_bibtex()</code>, and
+    <code>parse_crossref_json()</code> are three translators. Each reads a
+    different "language" (RIS's tag-per-line, BibTeX's braced fields,
+    Crossref's nested JSON), and all three write into the same shared
+    notepad: the <code>Record</code> dataclass.
+  </div>
+
+  <h2><span class="section-num">02</span>What Happens, Step by Step</h2>
+  <ol class="checklist">
+    <li>A parser receives raw text (RIS/BibTeX) or a dict (Crossref-shaped JSON) describing one paper</li>
+    <li>It extracts that format's fields using that format's own rules — RIS's <code>TAG  - value</code> lines, BibTeX's <code>key = {value}</code> pairs, Crossref's nested <code>title</code>/<code>author</code>/<code>published</code> structure</li>
+    <li>Format-specific quirks get resolved during extraction — multiple RIS <code>AU</code> lines become a list, BibTeX's <code>"A and B"</code> author string gets split on <code>" and "</code>, Crossref's JATS-XML-wrapped abstract gets its tags stripped</li>
+    <li>The extracted values are packed into a <code>Record</code> — the same seven fields, regardless of which parser produced it</li>
+    <li>If the input is missing a title (the one field nothing downstream can work without), the parser raises <code>ParseError</code> instead of returning a half-built record</li>
+  </ol>
+
+  <h2><span class="section-num">03</span>A Map of the State</h2>
+  <div class="diagram-box">
+    <pre style="border:none; background:none; padding:0;"><code>RIS text          BibTeX text         Crossref-shaped dict
+"TY  - JOUR        "@article{...,       {"title": [...],
+ AU  - Smith...     title = {...},       "author": [...],
+ TI  - Remote...    author = {...},      "published": {...},
+ ..."               ..."                 ...}
+    │                   │                    │
+    ▼                   ▼                    ▼
+parse_ris()        parse_bibtex()      parse_crossref_json()
+    │                   │                    │
+    └───────────────────┼────────────────────┘
+                         ▼
+              Record(title="Remote Work and Productivity",
+                      authors=["Smith, Jane"],
+                      year=2023,
+                      venue="Journal of Applied Psychology",
+                      doi="10.1037/xyz",
+                      source_format=<differs>)</code></pre>
+  </div>
+
+  <h2><span class="section-num">04</span>The Code, Explained</h2>
+  <p>Notice all three parsers share an identical <em>shape</em> even though
+  their parsing logic is completely different — extract fields in the
+  source format's own terms, then construct one <code>Record</code>:</p>
+  <pre><code>def parse_crossref_json(data: dict) -> Record:
+    titles = data.get("title") or []
+    if not titles:
+        raise ParseError("Crossref-shaped record has no title")
+    # ... extract authors, year, venue, abstract in Crossref's terms ...
+    return Record(title=titles[0], authors=authors, year=year,
+                   venue=..., abstract=..., doi=data.get("DOI"),
+                   source_format="CrossrefJSON")</code></pre>
+  <p>The abstract-cleaning step is worth a close look, because it's a real,
+  documented quirk of a real API, not a hypothetical edge case:</p>
+  <pre><code>abstract = data.get("abstract")
+if abstract:
+    # Crossref abstracts are frequently wrapped in JATS XML tags
+    abstract = re.sub(r"&lt;[^&gt;]+&gt;", "", abstract).strip()</code></pre>
+
+  <h2><span class="section-num">05</span>Limits / What You Cannot Do Yet</h2>
+  <div class="compare-grid">
+    <div class="compare-col cant">
+      <h4>Can't do yet</h4>
+      <ul>
+        <li>Parse arbitrary, deeply-nested BibTeX (only flat, brace-delimited fields — see DECISIONS.md)</li>
+        <li>Tell two <code>Record</code>s apart as duplicates or not — that's Module 6</li>
+        <li>Fetch anything from a live source — every input here is a literal string or dict</li>
+      </ul>
+    </div>
+    <div class="compare-col can">
+      <h4>Can do</h4>
+      <ul>
+        <li>Take the same paper in three real, independently-specified formats and prove they converge on one shape</li>
+        <li>Handle a documented real-world quirk (JATS-wrapped Crossref abstracts) correctly, not just the easy case</li>
+        <li>Fail loudly, not silently, when a record has no title</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2><span class="section-num">06</span>Run It</h2>
+  <pre><code>python record_model.py</code></pre>
+  <p>Expected output (captured from an actual run — abbreviated to the
+  final equality check; full per-format output appears three times above
+  it when you run it yourself):</p>
+  <pre><code>All self-checks passed.
+
+======================================================================
+Parsed from RIS
+======================================================================
+          title: Remote Work and Productivity
+        authors: ['Smith, Jane']
+           year: 2023
+          venue: Journal of Applied Psychology
+       abstract: An examination of productivity outcomes under remote work arrangements.
+            doi: 10.1037/xyz
+  source_format: RIS
+
+  [... BibTeX and Crossref JSON sections, same field values ...]
+
+======================================================================
+Do all three normalize to the same title/authors/year/doi?
+======================================================================
+  -> True (source_format differs, everything else matches)</code></pre>
+
+  <div class="warning-box">
+    <strong>Getting <code>None</code> for a field that should be filled?</strong>
+    Check the exact field name your input uses — RIS field tags are
+    case-sensitive two-letter codes (<code>PY</code>, not <code>Py</code>
+    or <code>YEAR</code>), and BibTeX field keys are matched
+    case-insensitively but still need to exactly match what the parser
+    looks up (<code>journal</code>, not <code>publication</code>).
+  </div>
+
+  <h2><span class="section-num">07</span>Brain Exercise</h2>
+  <div class="brain-exercise">
+    <details>
+      <summary>Why does <code>ParseError</code> require only a title, when a <code>Record</code> with no DOI and no abstract is arguably almost as useless downstream?</summary>
+      <div class="answer">
+        Because "almost as useless" isn't the same as "structurally
+        broken." A record missing a DOI or abstract is real and common —
+        plenty of legitimate preprints and older papers lack one or both —
+        and later modules (screening, extraction) can still meaningfully
+        operate on a title-and-authors-only record, even if imperfectly.
+        A record with no title isn't degraded, it's meaningless: there's
+        nothing to screen, display, or deduplicate against. The line is
+        drawn at "unusable," not "imperfect."
+      </div>
+    </details>
+  </div>
+
+  <h2><span class="section-num">08</span>There Are No Dumb Questions</h2>
+  <div class="qa-entry">
+    <div class="q">Why keep <code>source_format</code> at all if every <code>Record</code> ends up looking the same afterward?</div>
+    <div class="a">They look the same in the fields that matter for search/screening — but if Module 6's deduplication engine ever produces a surprising merge, knowing "this one came from Crossref, that one came from a hand-exported RIS file" is often the fastest way to figure out why.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">What happens if a BibTeX entry has a nested brace, like <code>title = {The {Real} Cost of Remote Work}</code>?</div>
+    <div class="a">The regex-based parser here would stop at the first closing brace, truncating the title. This is the documented scope limit from DECISIONS.md, not a silent failure — a production-grade BibTeX parser would need a real recursive parser, which is a reasonable, deliberate line to not cross for this module.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">Is the Crossref JSON shape in this module guaranteed to match what Module 4 actually gets back from the live API?</div>
+    <div class="a">It's built to match Crossref's documented public schema, but "documented" and "what a live call returns today" can drift. Module 4 is where that gets checked against reality — if it doesn't match, that's real, useful information Module 4's tutorial will surface, not swept under the rug.</div>
+  </div>
+
+  <h2><span class="section-num">09</span>What's Next</h2>
+  <p>Every record so far has come from a Python literal sitting in this
+  module's source code. Module 4 makes this course's first real network
+  call — running the query Module 2 built against a live, public academic
+  API and parsing whatever comes back with the exact
+  <code>parse_crossref_json()</code> function from this module.</p>
+
+  <div class="module-footer-nav">
+    <div class="prev"><a href="../02_boolean_query_builder/tutorial.html">← Module 2: Boolean Query Builder</a></div>
+    <div class="next"><a href="../04_live_api_connector/tutorial.html">Module 4: Live API Connector →</a></div>
+  </div>
+</div>
+</body>
+</html>
