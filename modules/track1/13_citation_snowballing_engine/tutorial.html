@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Module 13: Citation Snowballing Engine</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+<style>:root{--accent:#4d8b78;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Module 13 — Track 1: Core Engine — Phase 2: Synthesis & Provenance</span>Citation Snowballing Engine</h1>
+
+  <div class="warning-box">Needs internet access — real calls to Crossref and Semantic Scholar.</div>
+
+  <h2><span class="section-num">00</span>Before You Start</h2>
+  <p>Finished <a href="../03_bibliographic_record_model/tutorial.html">Module 3</a>
+  and <a href="../05_multi_source_aggregator/tutorial.html">Module 5</a> —
+  this module reuses both directly.</p>
+
+  <h2><span class="section-num">01</span>The Big Analogy</h2>
+  <div class="analogy-box">
+    <span class="label">The technique's own name, taken literally</span>
+    Push a small snowball downhill and it picks up more snow as it rolls —
+    it doesn't stay the size you started with. "Snowballing" a citation
+    search works the same way, in two directions at once. Pull one paper
+    off the shelf and flip to its bibliography: every work <em>it</em>
+    cites is snow the ball picks up rolling backward through time. Then
+    check a citation index for who has cited <em>that</em> paper since it
+    was published: every one of those is snow picked up rolling forward.
+    <br><br>
+    <code>backward_snowball()</code> reads the seed paper's real reference
+    list from Crossref. <code>forward_snowball()</code> reads who has
+    really cited it since, from Semantic Scholar. Neither direction is
+    simulated — both are live network calls against real citation graphs.
+  </div>
+
+  <h2><span class="section-num">02</span>What Happens, Step by Step</h2>
+  <ol class="checklist">
+    <li><code>fetch_crossref_record(seed_doi)</code> gets the seed paper's own metadata, via Module 3's existing Crossref parser, unchanged</li>
+    <li><code>backward_snowball()</code> fetches the seed's reference list from Crossref, keeps only the references that carry a resolvable DOI, and resolves up to <code>max_resolve</code> of them into full <code>Record</code>s</li>
+    <li><code>forward_snowball()</code> calls Semantic Scholar's citation graph API for papers citing the seed, parsing each into a <code>Record</code> via the new <code>parse_semantic_scholar_paper()</code></li>
+    <li>Module 5's <code>merge_sources()</code> — built two Tracks ago, unmodified since — combines the seed, backward results, and forward results into one corpus</li>
+  </ol>
+
+  <h2><span class="section-num">03</span>A Map of the State</h2>
+  <div class="diagram-box">
+    <pre style="border:none; background:none; padding:0;"><code>seed_doi = "10.1145/3243734.3243804"   ("Evaluating Fuzz Testing", 2018)
+        │
+        ├──────────────► fetch_crossref_record(seed_doi)
+        │                   -> Record(source_format="SeedPaper")
+        │
+        ├── backward_snowball() ──► Crossref reference list: 60 total,
+        │                            32 with a DOI
+        │                            resolve first 3:
+        │     <- "A practical guide for using statistical tests..." (2011)
+        │     <- "The DaCapo benchmarks" (2006)
+        │     <- "Directed Greybox Fuzzing" (2017)
+        │
+        └── forward_snowball() ──► Semantic Scholar citations: 5 fetched
+              -> "RALFuzz: Execution-aware and risk-aware LLM-assisted
+                  fuzz harness generation..." (2026)
+              -> "Advancing fuzzing with unbiased random generator..." (2026)
+              -> [... 3 more real 2026 citing papers ...]
+        │
+        ▼
+merge_sources([seed], backward, forward)
+        │
+        ▼
+corpus: 9 records total
+  {"SeedPaper": 1, "CrossrefBackwardSnowball": 3, "SemanticScholarForwardSnowball": 5}</code></pre>
+  </div>
+
+  <h2><span class="section-num">04</span>The Code, Explained</h2>
+  <p>Backward snowballing's DOI-filtering step — real Crossref data, checked
+  live, showed not every reference is resolvable:</p>
+  <pre><code>references = resp.json()["message"].get("reference", [])
+dois_with_metadata = [r["DOI"] for r in references if "DOI" in r]
+
+resolved = []
+for doi in dois_with_metadata[:max_resolve]:
+    rec = fetch_crossref_record(doi)   # reuses Module 3's parser unchanged
+    if rec is not None:
+        rec.source_format = "CrossrefBackwardSnowball"
+        resolved.append(rec)</code></pre>
+  <p>Forward snowballing hits a genuinely different API, with a genuinely
+  different shape:</p>
+  <pre><code>resp = requests.get(
+    f"{SEMANTIC_SCHOLAR_URL}/DOI:{seed_doi}/citations",
+    params={"fields": "title,year,authors,externalIds", "limit": limit},
+)</code></pre>
+
+  <h2><span class="section-num">05</span>Limits / What You Cannot Do Yet</h2>
+  <div class="compare-grid">
+    <div class="compare-col cant">
+      <h4>Can't do yet</h4>
+      <ul>
+        <li>Snowball recursively (expand from the newly-found papers too) — this module does exactly one hop in each direction</li>
+        <li>Resolve every reference — only DOI-bearing ones, and only up to <code>max_resolve</code></li>
+        <li>Deduplicate the expanded corpus against the original search results — that's Module 6, not re-run here</li>
+      </ul>
+    </div>
+    <div class="compare-col can">
+      <h4>Can do</h4>
+      <ul>
+        <li>Prove, with two real live citation-graph calls, that a corpus can grow beyond what any single search found</li>
+        <li>Distinguish backward-found (older, cited-by-seed) from forward-found (newer, citing-seed) work, provenance-tagged</li>
+        <li>Reuse two already-built modules (Module 3's parser, Module 5's merge) with zero modification</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2><span class="section-num">06</span>Run It</h2>
+  <pre><code>python snowball.py</code></pre>
+  <p>Real output captured 2026-07-28 (your forward-citation results will
+  differ — new papers cite the seed continuously):</p>
+  <pre><code>All self-checks passed (no network required for these).
+
+Seed paper: 'Evaluating Fuzz Testing' (2018)
+
+Backward snowball: resolving cited references (real Crossref calls)
+  <- 'A practical guide for using statistical tests to assess randomized algorithms in software engineering' (2011)
+  <- 'The DaCapo benchmarks' (2006)
+  <- 'Directed Greybox Fuzzing' (2017)
+
+Forward snowball: papers citing the seed (real Semantic Scholar call)
+  -> 'RALFuzz: Execution-aware and risk-aware LLM-assisted fuzz harness generation for C library APIs' (2026)
+  -> 'Advancing fuzzing with unbiased random generator and Feistel network-based mutations' (2026)
+  -> 'Why Not Fix It Once and for All? An Empirical Study of Multiple Patches for Vulnerability Fixes in Open-Source Software' (2026)
+  -> 'Understanding Implicit Trust Errors in Core Carrier Networks through Multi-Agent Flaw Discovery and Analysis' (2026)
+  -> 'Shark2Pit: Automated Test Template Generation for Protocol Fuzzing Based on Packet Parser' (2026)
+
+Corpus expansion
+Started with 1 seed paper. After snowballing: 9 records.
+By source: {'SeedPaper': 1, 'CrossrefBackwardSnowball': 3, 'SemanticScholarForwardSnowball': 5}</code></pre>
+
+  <h2><span class="section-num">07</span>Brain Exercise</h2>
+  <div class="brain-exercise">
+    <details>
+      <summary>The real backward results are from 2006-2017 and the real forward results are all 2026. Is that a coincidence?</summary>
+      <div class="answer">
+        No — it's structurally guaranteed, not coincidental. A paper can
+        only cite work that already existed when it was written, so
+        everything backward snowballing finds must be older than (or
+        contemporary with) the 2018 seed. A paper can only be cited by
+        work written after it existed, so everything forward snowballing
+        finds must be newer. The direction of time is baked into which
+        direction of snowballing can possibly find it — this is exactly
+        why real systematic reviews run both: backward finds foundational
+        work the original search might have missed, forward finds recent
+        work that couldn't have been in a search run before it existed.
+      </div>
+    </details>
+  </div>
+
+  <h2><span class="section-num">08</span>There Are No Dumb Questions</h2>
+  <div class="qa-entry">
+    <div class="q">Why not just recursively snowball from the newly-found papers too, to expand even further?</div>
+    <div class="a">You could — and real systematic reviews sometimes do, across multiple rounds, until no new relevant papers turn up ("saturation"). This module deliberately does one hop, to keep the demo's live network cost bounded and the core mechanism clear; recursive snowballing is a straightforward extension of the same two functions, not a different technique.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">What happens to references that don't have a DOI at all?</div>
+    <div class="a">They're filtered out before resolution even starts — real Crossref data showed 28 of the seed's 60 references were "unstructured" free text with no DOI to look up. Those genuinely can't be resolved into full Records by this module; a real review would need to search for them by title/author manually.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">Could backward and forward snowballing ever find the same paper?</div>
+    <div class="a">Not from a single seed in one hop — a paper the seed cites was written before the seed, and a paper that cites the seed was written after it, so the same paper can't structurally be in both sets (see the Brain Exercise). It becomes possible once you snowball recursively across multiple papers, which is exactly when Module 6's deduplication engine would need to be run again.</div>
+  </div>
+
+  <h2><span class="section-num">09</span>What's Next</h2>
+  <p>The corpus keeps growing, but nothing yet lines up what each included
+  study actually found, side by side. Module 14 builds the evidence table
+  — assembling every included study's extracted data (Module 10) into one
+  normalized, comparable table.</p>
+
+  <div class="module-footer-nav">
+    <div class="prev"><a href="../12_prisma_diagram_generator/tutorial.html">← Module 12: PRISMA Diagram Generator</a></div>
+    <div class="next"><a href="../14_evidence_table_builder/tutorial.html">Module 14: Evidence Table Builder →</a></div>
+  </div>
+</div>
+</body>
+</html>
