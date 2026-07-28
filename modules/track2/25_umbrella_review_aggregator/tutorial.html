@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Module 25: Umbrella Review Aggregator</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+<style>:root{--accent:#7a5c3a;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Module 25 — Track 2: Applied Layer</span>Umbrella Review Aggregator</h1>
+
+  <div class="prereq-tags">
+    <span class="status-badge">Depends on Track 1:</span>
+    <a href="../../track1/11_risk_of_bias_scorer/tutorial.html">Module 11</a>
+    <a href="../../track1/14_evidence_table_builder/tutorial.html">Module 14</a>
+  </div>
+
+  <h2><span class="section-num">00</span>Before You Start</h2>
+  <p>Read <a href="../../track0_orientation/00_literature_review_landscape/concept_umbrella_review.html">Module 0's Umbrella Review concept page</a> —
+  this module's central hazard (overlapping primary studies) is exactly
+  what that page's warning box describes.</p>
+
+  <h2><span class="section-num">01</span>The Big Analogy</h2>
+  <div class="analogy-box">
+    <span class="label">The shared guest at three parties</span>
+    Three hosts each report their party's guest list: 4, 4, and 2 people.
+    Add those up and you'd report 10 people attended something this
+    weekend. But if the same two people went to both the first and second
+    party, the real number of distinct people who attended anything is 8,
+    not 10 — two guests got counted twice just because they showed up
+    twice.
+    <br><br>
+    <code>total_unique_primary_studies()</code> is the version of this
+    module that actually checks guest lists against each other instead of
+    just adding up party sizes. Run on this module's own demo data, the
+    naive sum is 10 and the real, deduplicated total is 8 — the exact same
+    shared-guest problem, with real primary studies instead of party guests.
+  </div>
+
+  <h2><span class="section-num">02</span>What Happens, Step by Step</h2>
+  <ol class="checklist">
+    <li>Each <code>IncludedReview</code> carries a title and the set of primary-study DOIs it included — the review, not a primary study, is this module's unit of analysis</li>
+    <li><code>AMSTAR_LITE_CHECKLIST</code> — built from Module 11's exact <code>Checklist</code>/<code>ChecklistItem</code> classes — appraises each review's own conduct (protocol registration, search comprehensiveness, duplicate screening) via Module 11's unmodified <code>score_checklist()</code></li>
+    <li><code>total_unique_primary_studies()</code> computes the real, deduplicated evidence base via set union — not a sum of each review's count</li>
+    <li><code>compute_overlap()</code> reports, for every pair of included reviews, exactly how many primary studies they share and what fraction of their combined evidence that overlap represents</li>
+  </ol>
+
+  <h2><span class="section-num">03</span>A Map of the State</h2>
+  <div class="diagram-box">
+    <pre style="border:none; background:none; padding:0;"><code>Review A: {s1, s2, s3, s4}     appraisal: 0.90 -> "low risk"
+Review B: {s3, s4, s5, s6}     appraisal: 0.40 -> "high risk"
+Review C: {s7, s8}             appraisal: 0.90 -> "low risk"
+        │
+        ▼  naive_total = len(A) + len(B) + len(C) = 4 + 4 + 2 = 10
+        │
+        ▼  total_unique_primary_studies() = |A ∪ B ∪ C|
+           = {s1,s2,s3,s4,s5,s6,s7,s8} = 8
+        │
+        ▼  gap = 10 - 8 = 2   <- s3 and s4, double-counted (in both A and B)
+        │
+        ▼  compute_overlap()
+A <-> B: shared={s3,s4}, count=2, union={s1..s6}=6, pct=33.3%
+A <-> C: shared={}, count=0, pct=0.0%
+B <-> C: shared={}, count=0, pct=0.0%</code></pre>
+  </div>
+
+  <h2><span class="section-num">04</span>The Code, Explained</h2>
+  <pre><code>def total_unique_primary_studies(reviews: list[IncludedReview]) -> int:
+    all_dois: set[str] = set()
+    for r in reviews:
+        all_dois |= r.primary_study_dois     # set union — this IS the dedup
+    return len(all_dois)</code></pre>
+  <p>One line does the entire job. The bug this module exists to prevent
+  isn't complicated to fix — it's easy to <em>forget</em>, if you're used
+  to just summing counts from a list of reports.</p>
+
+  <h2><span class="section-num">05</span>Limits / What You Cannot Do Yet</h2>
+  <div class="compare-grid">
+    <div class="compare-col cant">
+      <h4>Can't do yet</h4>
+      <ul>
+        <li>Match the real AMSTAR-2 instrument, which has 16 detailed items — this is a simplified, honestly-labeled subset</li>
+        <li>Compute the more sophisticated "corrected covered area" overlap metric real umbrella-review methodology sometimes uses — only raw set overlap</li>
+        <li>Resolve a conflicting appraisal (if two overlapping reviews reached different conclusions about a shared primary study) — overlap is detected, not reconciled</li>
+      </ul>
+    </div>
+    <div class="compare-col can">
+      <h4>Can do</h4>
+      <ul>
+        <li>Appraise reviews with the exact same real machinery Track 1 built for primary studies</li>
+        <li>Catch and quantify a real, common umbrella-review hazard — double-counted primary-study evidence — with an exact number, not a vague warning</li>
+        <li>Pinpoint precisely which pair of included reviews caused the overlap</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2><span class="section-num">06</span>Run It</h2>
+  <pre><code>python umbrella_review.py</code></pre>
+  <p>Expected output (deterministic, no network involved):</p>
+  <pre><code>All self-checks passed.
+
+Appraising each included REVIEW (not primary study) — reuses Module 11
+  Systematic Review A: Remote Work and Mental Health Outcomes
+    proportion=0.90  band='low risk'
+  Systematic Review B: Telework and Psychological Wellbeing
+    proportion=0.40  band='high risk'
+  Systematic Review C: Workplace Flexibility and Burnout
+    proportion=0.90  band='low risk'
+
+Overlap: the hazard specific to umbrella reviews
+  Naive sum of each review's primary studies: 10
+  Real, deduplicated primary-study evidence base: 8
+  (2 primary studies were double- or triple-counted
+   across overlapping reviews before deduplication)
+
+  Systematic Review A: Remote Work and Mental Health Outcomes <-> Systematic Review B: Telework and Psychological Wellbeing: 2 shared primary studies (33.3% of their combined union)
+  Systematic Review A: Remote Work and Mental Health Outcomes <-> Systematic Review C: Workplace Flexibility and Burnout: 0 shared primary studies (0.0% of their combined union)
+  Systematic Review B: Telework and Psychological Wellbeing <-> Systematic Review C: Workplace Flexibility and Burnout: 0 shared primary studies (0.0% of their combined union)</code></pre>
+
+  <h2><span class="section-num">07</span>Brain Exercise</h2>
+  <div class="brain-exercise">
+    <details>
+      <summary>Review B was appraised as "high risk" (no registered protocol, no duplicate screening). Should its primary studies be trusted the same as Review A's, given they overlap on 2 studies?</summary>
+      <div class="answer">
+        This is exactly the kind of question this module surfaces but
+        deliberately doesn't answer for you — see the Limits section.
+        Studies s3 and s4 are included in both a "low risk" review (A) and
+        a "high risk" review (B); this module reports that overlap and
+        both appraisals honestly, but reconciling what to conclude when
+        two reviews of differing quality both included the same evidence
+        is a real, human editorial judgment call, not a mechanical one.
+        What this module guarantees is that you'd actually <em>see</em>
+        this tension — <code>compute_overlap()</code> makes it visible —
+        rather than it disappearing inside a single combined count.
+      </div>
+    </details>
+  </div>
+
+  <h2><span class="section-num">08</span>There Are No Dumb Questions</h2>
+  <div class="qa-entry">
+    <div class="q">Why does this module reuse Module 11's checklist classes instead of Module 22's, since Module 22 also built a "reduced" checklist?</div>
+    <div class="a">Because Module 22's reduction (fewer items, same subject — primary studies) and this module's adaptation (a different subject entirely — reviews) are different kinds of change. Both trace back to the same root classes in Module 11, which is the actual point: one set of classes supports both a "fewer items" adaptation and a "different unit of analysis" adaptation without modification.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">What would happen with real DOIs that have formatting inconsistencies, like Module 4 found with "Telework" vs "Teleworking"?</div>
+    <div class="a">This module's overlap detection depends on exact string matches between DOI sets — it doesn't call Module 6's `normalize_doi()`. Two representations of the same DOI (different case, a URL prefix) would be treated as different studies, silently under-counting real overlap. That's a real, un-addressed gap; a production version of this module should normalize DOIs the same way Module 6 and Module 23 already do.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">Is 33.3% overlap between two reviews a lot?</div>
+    <div class="a">There's no universal threshold — real umbrella-review guidance treats substantial overlap as a signal to investigate and report transparently, not an automatic disqualifier. What matters is that the number is visible at all, so an editor or reader can make that judgment themselves instead of it being invisible inside a combined total.</div>
+  </div>
+
+  <h2><span class="section-num">09</span>What's Next</h2>
+  <p>Module 26 adapts the pipeline one more way — not for a different unit
+  of analysis, but for a different lifecycle: a review that stays alive,
+  re-running incrementally as new evidence appears.</p>
+
+  <div class="module-footer-nav">
+    <div class="prev"><a href="../24_qualitative_evidence_synthesis/tutorial.html">← Module 24: Qualitative Evidence Synthesis</a></div>
+    <div class="next"><a href="../26_living_review_updater/tutorial.html">Module 26: Living Review Updater →</a></div>
+  </div>
+</div>
+</body>
+</html>
