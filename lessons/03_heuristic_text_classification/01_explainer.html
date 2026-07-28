@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Concept Cluster: Heuristic Text Classification & Its Limits</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<style>:root{--accent:#c46a3f;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Concept Cluster 03</span>Heuristic Text Classification & Its Limits</h1>
+
+  <p>This is the single most-repeated pattern in the entire course: decide
+  something about a piece of text by checking whether it contains certain
+  words. It appears in at least eight modules across both tracks — and the
+  same specific failure mode (negation-blindness) was independently
+  discovered twice, in two different modules, by two different functions
+  that had never seen each other's code.</p>
+
+  <h2><span class="section-num">01</span>The Big Analogy</h2>
+  <div class="analogy-box">
+    <span class="label">A hiring manager who only scans for keywords</span>
+    A resume-screening tool that rejects any resume not containing the
+    word "Python" will reject a genuinely qualified candidate who wrote
+    "I primarily used Python" as "primarily Python-based development" —
+    a real synonym, missed. It will also happily pass a resume that says
+    "I have no experience with Python whatsoever" — the keyword is
+    present, the actual meaning is the opposite of what the check assumes.
+    Every keyword-heuristic function in this course is that hiring
+    manager: fast, transparent, auditable, and blind to exactly this kind
+    of context.
+  </div>
+
+  <h2><span class="section-num">02</span>Where This Shows Up Across the Course</h2>
+  <table>
+    <tr><th>Module</th><th>What it classifies</th><th>Real limitation named</th></tr>
+    <tr><td><a href="../../modules/track1/01_research_question_formalizer/tutorial.html">Module 1</a></td><td>Which framework (PICO/PEO/SPIDER) a question needs</td><td>Order-dependent; a question matching two frameworks' markers always resolves to whichever is checked first</td></tr>
+    <tr><td><a href="../../modules/track1/08_screening_engine/tutorial.html">Module 8</a></td><td>Whether a record is topically relevant</td><td>No concept of negation or context at all — pure substring presence</td></tr>
+    <tr><td><a href="../../modules/track1/09_fulltext_eligibility_engine/tutorial.html">Module 9</a></td><td>Whether a study's design is comparative</td><td>Explicitly documented: a legitimately comparative study using none of the three marker phrases would be wrongly excluded</td></tr>
+    <tr><td><a href="../../modules/track1/15_thematic_coding_engine/tutorial.html">Module 15</a></td><td>Which open codes an excerpt carries</td><td>Same substring-presence limitation, one level up (qualitative codes instead of relevance)</td></tr>
+    <tr><td><a href="../../modules/track2/21_scoping_review_mapper/tutorial.html">Module 21</a></td><td>Whether a record discusses remote/hybrid work</td><td>Its own demo's first draft accidentally self-triggered on an abstract that used the trigger phrase while denying it</td></tr>
+    <tr><td><a href="../../modules/track2/24_qualitative_evidence_synthesis/tutorial.html">Module 24</a></td><td><strong>Whether two studies agree or refute each other</strong></td><td><strong>Real, demonstrated failure kept in the published demo</strong>: negation describing a phenomenon ("I don't talk to anyone") misclassified as negation of a claim</td></tr>
+    <tr><td><a href="../../modules/track2/27_related_work_comparison_matrix/tutorial.html">Module 27</a> / <a href="../../modules/track2/28_positioning_gap_statement_generator/tutorial.html">Module 28</a></td><td>A paper's approach type and technical scope</td><td><strong>The exact same negation-blindness bug, independently rediscovered</strong> during Module 28's own development ("without machine learning" matched "machine learning")</td></tr>
+  </table>
+
+  <h2><span class="section-num">03</span>Why the Same Bug Twice Is the Interesting Part</h2>
+  <div class="diagram-box">
+    <pre style="border:none; background:none; padding:0;"><code>Module 24's _is_negated():                 Module 27's classify_approach():
+  checks for "n't", "not ", "never", etc.     checks for substring "machine learning"
+  -> misclassifies "I don't talk to           -> misclassifies "without machine
+     anyone" (agreement) as refutational         learning" as ml_based=True
+
+  Two DIFFERENT functions. Two DIFFERENT modules, built weeks apart in
+  this course's own construction. Two DIFFERENT specific trigger phrases.
+  ONE underlying cause: neither function looks at what surrounds the
+  matched word, only whether it's present at all.</code></pre>
+  </div>
+  <p>That recurrence is itself the finding. It means this isn't a quirk of
+  Module 24's specific negation-word list that a better word list would
+  fix — it's a structural property of substring-presence checking as a
+  technique, visible only once you compare multiple independent instances
+  of it side by side.</p>
+
+  <h2><span class="section-num">04</span>Why This Lives Here, Not Inside One Module</h2>
+  <p>Module 24's own DECISIONS.md and Module 28's own DECISIONS.md each
+  document their own instance honestly — but neither module, read alone,
+  can make the claim this cluster page makes: that this is a recurring
+  class of failure across the whole course, not a one-off. That claim only
+  becomes visible by reading multiple modules' heuristics side by side,
+  which is exactly what a module-scoped tutorial isn't built to do.</p>
+
+  <h2><span class="section-num">05</span>Go Deeper</h2>
+  <ul class="checklist">
+    <li><a href="02_alternatives_deepdive.html">Deep dive: what real NLP systems do instead, and why this course didn't</a></li>
+    <li><a href="03_failure_catalog_deepdive.html">Deep dive: a full catalog of every heuristic failure this course found, in one place</a></li>
+  </ul>
+</div>
+</body>
+</html>

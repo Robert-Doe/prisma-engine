@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Deep Dive: The Full Heuristic Failure Catalog</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<style>:root{--accent:#c46a3f;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Concept Cluster 03 — Deep Dive 2</span>The Full Heuristic-Failure Catalog</h1>
+
+  <p>Every row below is a real, run, documented event during this
+  course's own construction — not a hypothetical "here's what could go
+  wrong." Collected in one place, a pattern emerges that no single
+  module's own DECISIONS.md can show on its own.</p>
+
+  <table>
+    <tr><th>Module</th><th>Heuristic</th><th>What actually happened</th><th>Resolution</th></tr>
+    <tr>
+      <td><a href="../../modules/track1/01_research_question_formalizer/tutorial.html">Module 1</a></td>
+      <td><code>suggest_framework_verbose()</code></td>
+      <td>A question matching both a SPIDER and a PEO marker always resolves to SPIDER — checked first, by design, not a bug, but an ordering dependency worth knowing about</td>
+      <td>Documented as a deliberate convention in DECISIONS.md, not treated as an error state</td>
+    </tr>
+    <tr>
+      <td><a href="../../modules/track1/09_fulltext_eligibility_engine/tutorial.html">Module 9</a></td>
+      <td><code>design_is_comparative()</code></td>
+      <td>Named directly in the tutorial's Limits section as capable of wrongly excluding a real comparative study that happens to use none of the three marker phrases — not triggered in the demo, but explicitly anticipated</td>
+      <td>Left as a stated, un-fixed limitation — the point being made is that heuristics have describable failure boundaries, not that every one must be eliminated</td>
+    </tr>
+    <tr>
+      <td><a href="../../modules/track2/21_scoping_review_mapper/tutorial.html">Module 21</a></td>
+      <td><code>mentions_remote_work()</code></td>
+      <td>The module's own first-draft demo text ("Unrelated to remote work practices") accidentally contained its own trigger phrase, self-sabotaging the intended "correctly excluded" example</td>
+      <td>Demo text rewritten to avoid the accidental self-trigger — a real instance of an author's own test data tripping the exact heuristic being tested</td>
+    </tr>
+    <tr>
+      <td><a href="../../modules/track2/24_qualitative_evidence_synthesis/tutorial.html">Module 24</a></td>
+      <td><code>_is_negated()</code></td>
+      <td>Two genuinely agreeing excerpts about social isolation were misclassified as "refutational," because one contained grammatical negation ("don't talk to") describing the phenomenon itself, not negating a claim about it</td>
+      <td><strong>Deliberately kept in the published module</strong>, explained directly in both the code's printed output and the tutorial, as the clearest real demonstration in the course of this exact failure class</td>
+    </tr>
+    <tr>
+      <td><a href="../../modules/track2/27_related_work_comparison_matrix/tutorial.html">Module 27</a> / <a href="../../modules/track2/28_positioning_gap_statement_generator/tutorial.html">Module 28</a></td>
+      <td><code>classify_approach()</code> / <code>extract_dimensions()</code></td>
+      <td>Module 28's self-check used the phrase "without machine learning," which matched the substring "machine learning" regardless of the negation, marking a non-ML paper as ML-based</td>
+      <td>Self-check example text rewritten to avoid the collision; the recurrence is documented in Module 28's DECISIONS.md as the same root cause as Module 24's, found independently</td>
+    </tr>
+    <tr>
+      <td><a href="../../modules/track2/30_thesis_gap_funnel_builder/tutorial.html">Module 30</a></td>
+      <td>An early, unshipped "contested theme" detector</td>
+      <td>A positive/negative keyword heuristic (same style as Module 24's) was tried during development to detect themes where sources disagree — run against the module's own real demo data, it found zero contested themes, because the real disagreement in that data was <em>across</em> themes, a pattern the within-theme heuristic was never built to see</td>
+      <td>Removed before shipping, rather than kept despite producing no useful signal on real data — documented in DECISIONS.md as a design decision made after testing, not assumed from the start</td>
+    </tr>
+  </table>
+
+  <h2><span class="section-num">01</span>What the Catalog Shows That No Single Row Does</h2>
+  <ul class="checklist">
+    <li>Two independent negation-blindness failures (Modules 24 and 27/28) confirm this is a structural risk of substring-based classification generally, not a quirk of one word list</li>
+    <li>One heuristic was kept despite a known failure (Module 24, because the failure itself is the lesson) and one was removed because of a demonstrated failure (Module 30's contested-theme detector) — two different, both legitimate responses depending on whether the failure teaches something or just doesn't work</li>
+    <li>Every single row was caught by actually running real code against real or realistic data, never by inspection alone — consistent with this course's stated quality bar throughout both tracks</li>
+  </ul>
+
+  <p style="margin-top:2em;"><a href="01_explainer.html">← Back to the cluster overview</a> · <a href="02_alternatives_deepdive.html">← Alternatives</a></p>
+</div>
+</body>
+</html>

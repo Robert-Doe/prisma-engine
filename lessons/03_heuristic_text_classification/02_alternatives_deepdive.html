@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Deep Dive: What Real NLP Systems Do Instead</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<style>:root{--accent:#c46a3f;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Concept Cluster 03 — Deep Dive 1</span>What Real NLP Systems Do Instead, and Why This Course Didn't</h1>
+
+  <h2><span class="section-num">01</span>NegEx: A Real, Purpose-Built Solution to This Exact Problem</h2>
+  <p>The specific failure this cluster documents — confusing "negation
+  describing a phenomenon" with "negation of a claim" — has a real,
+  well-known name in clinical NLP research: distinguishing an
+  <strong>asserted</strong> finding from a <strong>negated</strong> one in
+  free text. <strong>NegEx</strong> (Chapman et al., 2001) is a real,
+  widely-cited algorithm built specifically for this: it uses a curated
+  list of negation trigger phrases <em>and</em> a defined scope window
+  (how many words after a trigger the negation is considered to apply),
+  so "no evidence of infection" correctly negates "infection" while "no
+  evidence of infection, but severe pain" correctly stops the negation
+  scope before "pain." This course's <code>_is_negated()</code> functions
+  (Modules 24, 27) have no scope concept at all — presence anywhere in the
+  text is treated as negating the entire excerpt, which is exactly the
+  simplification that caused both real bugs this cluster documents.</p>
+
+  <h2><span class="section-num">02</span>Dependency Parsing</h2>
+  <p>Modern NLP libraries (spaCy, Stanford CoreNLP) can parse a sentence's
+  grammatical structure and identify exactly which word a negation
+  ("not," "n't") grammatically modifies — distinguishing "I do not think
+  this works" (negates "think") from "I think this does not work"
+  (negates "work") even though both contain the same negation token. This
+  is a real, working solution to the scope problem NegEx approximates with
+  simpler rules — at the cost of a genuinely heavier dependency (a full
+  parsing library, model downloads, meaningfully more compute per
+  sentence) than this course's stated architecture target permits.</p>
+
+  <h2><span class="section-num">03</span>Modern LLM-Based Classification</h2>
+  <p>A large language model, prompted directly ("does this excerpt
+  describe agreement or disagreement with X"), can correctly handle
+  negation-in-context essentially by default, because it's reasoning over
+  meaning rather than matching substrings. This is a real, increasingly
+  common approach to exactly the classification tasks Modules 1, 8, 9, 15,
+  21, 24, 27, and 28 all perform with keyword heuristics instead.</p>
+
+  <h2><span class="section-num">04</span>Why This Course Used Keyword Heuristics Anyway</h2>
+  <div class="compare-grid">
+    <div class="compare-col cant">
+      <h4>What keyword heuristics give up</h4>
+      <ul>
+        <li>Correctness on negation, sarcasm, context-dependent meaning — the entire class of failure this cluster documents</li>
+        <li>Any real semantic understanding — they match text shape, not meaning</li>
+      </ul>
+    </div>
+    <div class="compare-col can">
+      <h4>What they buy instead</h4>
+      <ul>
+        <li>Zero external dependencies — every heuristic in this course runs on the Python standard library alone, matching the ROADMAP's stated architecture target</li>
+        <li>Total transparency — every classification decision traces to one visible, readable line of code, which is exactly why this cluster's own failures were discoverable and explainable at all</li>
+        <li>Deterministic, reproducible output — the same input always produces the same classification, with no model version or randomness to account for</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="tip-box">
+    <strong>The real tradeoff, stated plainly:</strong> this course chose
+    auditability over accuracy, every time, on purpose. A production
+    system doing this work for real should very likely reach for NegEx-
+    style scoped negation detection or a proper NLP library at minimum —
+    but a teaching module whose whole point is showing you exactly why a
+    classification happened benefits from every decision being one
+    grep-able line, even when that line is sometimes wrong.
+  </div>
+
+  <p style="margin-top:2em;"><a href="01_explainer.html">← Back to the cluster overview</a> · <a href="03_failure_catalog_deepdive.html">Next: the full failure catalog →</a></p>
+</div>
+</body>
+</html>
