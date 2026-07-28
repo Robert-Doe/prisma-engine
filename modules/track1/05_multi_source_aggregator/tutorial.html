@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Module 5: Multi-Source Aggregator</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+<style>:root{--accent:#3fa7d6;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Module 5 — Track 1: Core Engine</span>Multi-Source Aggregator</h1>
+
+  <div class="prereq-tags">
+    <span class="status-badge">Prerequisites:</span>
+    <a href="../../../prerequisites/prereq_bibliographic_metadata.html">Bibliographic Metadata & Identifiers</a>
+  </div>
+
+  <div class="warning-box">
+    <strong>Needs internet access.</strong> Like Module 4, this module's
+    exact record counts are not reproducible — both PubMed's and arXiv's
+    indexes change over time.
+  </div>
+
+  <h2><span class="section-num">00</span>Before You Start</h2>
+  <p>Finished <a href="../03_bibliographic_record_model/tutorial.html">Module 3</a>
+  and <a href="../04_live_api_connector/tutorial.html">Module 4</a> — this
+  module imports Module 4's PubMed connector directly and reuses it
+  unchanged.</p>
+
+  <h2><span class="section-num">01</span>The Big Analogy</h2>
+  <div class="analogy-box">
+    <span class="label">Two rivers, one tracer dye</span>
+    Two rivers join at a confluence and become one wider river — from that
+    point on, you can't tell by looking which water came from which
+    tributary. Except hydrologists actually can, because they release a
+    harmless tracer dye upstream, a different color in each river, before
+    the joining point. Any sample taken downstream, no matter how mixed,
+    still tests positive for exactly one dye — proving which tributary
+    that water originated from, even after merging.
+    <br><br>
+    <code>source_format</code> — set once, back in Module 3 and Module 4's
+    parsers, long before this module exists — is that dye. Merging never
+    erases it.
+  </div>
+
+  <h2><span class="section-num">02</span>What Happens, Step by Step</h2>
+  <ol class="checklist">
+    <li><code>search_pubmed()</code> — literally Module 4's <code>search_and_fetch()</code>, imported and called unchanged — returns real PubMed <code>Record</code>s</li>
+    <li><code>fetch_arxiv()</code> sends a real boolean query to arXiv's Atom API and returns real arXiv <code>Record</code>s</li>
+    <li><code>parse_arxiv_feed()</code> walks the Atom XML's namespaced <code>&lt;entry&gt;</code> elements, extracting title/authors/year/venue/abstract/DOI into the same <code>Record</code> shape Module 3 defined</li>
+    <li><code>merge_sources()</code> concatenates any number of source lists into one corpus</li>
+    <li>It also tallies a <code>CorpusStats</code> count per <code>source_format</code> — proof, not assertion, that every record's origin is still traceable after merging</li>
+  </ol>
+
+  <h2><span class="section-num">03</span>A Map of the State</h2>
+  <div class="diagram-box">
+    <pre style="border:none; background:none; padding:0;"><code>search_pubmed(pubmed_query)     fetch_arxiv(arxiv_query)
+   │  (Module 4, reused)            │  (new: Atom XML)
+   ▼                                ▼
+[Record(source_format=        [Record(source_format=
+   "PubMedESummary"), ...]        "ArXivAtom"), ...]
+   │                                │
+   └───────────────┬────────────────┘
+                    ▼
+           merge_sources(pubmed_records, arxiv_records)
+                    │
+        ┌───────────┴───────────┐
+        ▼                       ▼
+   corpus: list[Record]    CorpusStats(
+   (order preserved,         counts_by_source={
+    both sources mixed         "PubMedESummary": 3,
+    into one list)              "ArXivAtom": 3},
+                               total=6)</code></pre>
+  </div>
+
+  <h2><span class="section-num">04</span>The Code, Explained</h2>
+  <p>The merge itself is deliberately almost nothing — the interesting work
+  already happened upstream, in each source's parser:</p>
+  <pre><code>def merge_sources(*source_lists: list[Record]) -> tuple[list[Record], CorpusStats]:
+    merged: list[Record] = []
+    for records in source_lists:
+        merged.extend(records)
+
+    counts: dict[str, int] = {}
+    for r in merged:
+        counts[r.source_format] = counts.get(r.source_format, 0) + 1
+
+    return merged, CorpusStats(counts_by_source=counts, total=len(merged))</code></pre>
+  <p>That's the whole proof mechanism: <code>counts</code> isn't hand-typed
+  or assumed, it's computed by actually walking the merged list and reading
+  each record's <code>source_format</code> back out. If merging silently
+  corrupted provenance, this count would be wrong — and the self-checks
+  would catch it.</p>
+
+  <h2><span class="section-num">05</span>Limits / What You Cannot Do Yet</h2>
+  <div class="compare-grid">
+    <div class="compare-col cant">
+      <h4>Can't do yet</h4>
+      <ul>
+        <li>Remove duplicate records that both sources happen to return — a paper indexed in both PubMed and arXiv (as a preprint) shows up twice right now</li>
+        <li>Handle a source's rate limits or pagination beyond the first page of results</li>
+        <li>Clean up messy real metadata (arXiv's author list quirks are kept as-is — see DECISIONS.md)</li>
+      </ul>
+    </div>
+    <div class="compare-col can">
+      <h4>Can do</h4>
+      <ul>
+        <li>Pull real results from two structurally different live APIs into one list</li>
+        <li>Prove, by computation rather than assertion, that provenance survives merging</li>
+        <li>Accept any number of sources through the same function, unmodified</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2><span class="section-num">06</span>Run It</h2>
+  <pre><code>python aggregator.py</code></pre>
+  <p>Real output captured 2026-07-27 (your counts will differ):</p>
+  <pre><code>All self-checks passed (no network required for these).
+
+======================================================================
+Fetching from PubMed (reusing Module 4's search_and_fetch)...
+======================================================================
+PubMed: 3 records fetched, 905 available
+
+======================================================================
+Fetching from arXiv (new in this module)...
+======================================================================
+arXiv: 3 records fetched, 44 available
+
+======================================================================
+Merging into one corpus...
+======================================================================
+Total merged: 6
+By source: {'PubMedESummary': 3, 'ArXivAtom': 3}
+
+Every record in the merged list still knows where it came from:
+  [PubMedESummary] A retrospective study evaluating outcomes of the Allied Health Rural G
+  [PubMedESummary] Ill at home, still at work? Working from home practices and sickness p
+  [PubMedESummary] Development of a Blended Physical Activity Intervention for Office Emp
+  [     ArXivAtom] On the Factors Influencing the Choices of Weekly Telecommuting Frequen
+  [     ArXivAtom] Remote Work: Driver or Deterrent of Digital Product Innovation
+  [     ArXivAtom] Personal Productivity and Well-being -- Chapter 2 of the 2021 New Futu</code></pre>
+
+  <div class="warning-box">
+    <strong>Getting an ImportError for <code>connector</code>?</strong>
+    This module inserts both Module 3's and Module 4's directories onto
+    <code>sys.path</code> — run it from inside its own directory, and make
+    sure neither sibling module directory has been renamed or moved.
+  </div>
+
+  <h2><span class="section-num">07</span>Brain Exercise</h2>
+  <div class="brain-exercise">
+    <details>
+      <summary>The Limits section admits a paper indexed in both PubMed and arXiv would appear twice in the merged corpus right now. Why doesn't this module just deduplicate before returning the corpus?</summary>
+      <div class="answer">
+        Because deduplication needs its own real logic — deciding whether
+        two differently-titled, differently-formatted records actually
+        describe the same paper is genuinely hard (exact DOI match is easy;
+        fuzzy title/author matching across a preprint and its later
+        published version is not). Folding that into "the module that
+        merges lists" would hide a substantial algorithm inside a function
+        that's supposed to be almost nothing. Module 6 exists specifically
+        so deduplication gets its own space to be explained properly,
+        rather than becoming a rushed afterthought bolted onto this one.
+      </div>
+    </details>
+  </div>
+
+  <h2><span class="section-num">08</span>There Are No Dumb Questions</h2>
+  <div class="qa-entry">
+    <div class="q">Why does <code>merge_sources()</code> take <code>*source_lists</code> instead of just two fixed parameters, <code>pubmed_records</code> and <code>arxiv_records</code>?</div>
+    <div class="a">Because nothing about the merge logic is specific to those two sources — it's just concatenation plus a count. A fixed two-parameter signature would need editing every time a third source (Module 21's scoping-review variant, for instance) wants to reuse it. The variadic signature means it never needs to change.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">The arXiv author list example had "Ph. D." and " PEng" as separate authors — shouldn't the parser filter those out?</div>
+    <div class="a">It's tempting, but filtering requires a rule ("things that look like credentials aren't names") that will inevitably misfire on some real name somewhere. This module's job is faithful normalization of structure (get the right fields into the right places), not judgment calls about content quality — that boundary is deliberate, not an oversight.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">Could I add a third source, like Crossref, right now?</div>
+    <div class="a">Yes — write a <code>fetch_crossref(...) -> list[Record]</code> function using Module 3's existing <code>parse_crossref_json()</code>, and pass its result as a third argument to <code>merge_sources()</code>. Nothing else in this module needs to change.</div>
+  </div>
+
+  <h2><span class="section-num">09</span>What's Next</h2>
+  <p>The corpus is real, merged, and provenance-tagged — and, as this
+  module's Brain Exercise admits, almost certainly contains duplicates.
+  Module 6 builds the actual deduplication engine: exact DOI matching
+  first, then fuzzy title/author matching for the harder cases.</p>
+
+  <div class="module-footer-nav">
+    <div class="prev"><a href="../04_live_api_connector/tutorial.html">← Module 4: Live API Connector</a></div>
+    <div class="next"><a href="../06_deduplication_engine/tutorial.html">Module 6: Deduplication Engine →</a></div>
+  </div>
+</div>
+</body>
+</html>
