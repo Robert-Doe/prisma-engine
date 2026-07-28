@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Module 0: The Literature Review Landscape</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+<style>:root{--accent:#3ec9b0;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Module 0 — Orientation (no code)</span>The Literature Review Landscape</h1>
+
+  <div class="prereq-tags">
+    <span class="status-badge">Prerequisites:</span>
+    <a href="../../../prerequisites/prereq_positioning_vs_synthesis.html">Positioning vs. Evidence-Synthesis</a>
+    <a href="../../../prerequisites/prereq_synthesis_vs_summary.html">Synthesis vs. Summary</a>
+  </div>
+
+  <h2><span class="section-num">01</span>The Big Analogy</h2>
+  <div class="analogy-box">
+    <span class="label">Vehicles for crossing the same terrain</span>
+    A bicycle, a scout's motorbike, an armored truck, and a lawyer's opening
+    statement are all ways of getting from "what's out there" to a
+    destination — but you'd never use an armored truck to scout unfamiliar
+    terrain, or a bicycle to move something that needs to survive an audit.
+    <br><br>
+    A <strong>systematic review</strong> is the armored truck: slow,
+    heavily engineered, built to survive being audited line by line — every
+    record's fate logged, nothing quietly left behind. A
+    <strong>scoping review</strong> is the scout on a motorbike: fast,
+    wide-ranging, mapping what terrain exists without stopping to fight
+    every battle. A <strong>narrative/thesis review</strong> is a tour
+    guide walking you down one curated path toward a specific viewpoint —
+    selective on purpose, and better for it. A <strong>positioning review</strong>
+    (the USENIX-style "Related Work" section) is a lawyer's opening
+    statement: built to make one case, and it fails the instant it
+    misrepresents the other side's evidence.
+    <br><br>
+    None of these is "the real literature review" that the others are
+    sloppy versions of. They're different vehicles, built for different jobs.
+    The mistake this module exists to prevent is picking the wrong one —
+    or worse, not knowing there was a choice.
+  </div>
+
+  <h2><span class="section-num">02</span>The Two Axes That Actually Separate Them</h2>
+  <p>Nineteen names is too many to hold in your head as an unordered list.
+  Nearly all of them fall out naturally along two questions, following the
+  distinction methodologists use between <strong>aggregative</strong> and
+  <strong>configurative</strong> synthesis (Barnett-Page & Thomas, 2009):</p>
+  <ul>
+    <li><strong>How broad is the question?</strong> Narrow and specific ("does X change Y?") vs. broad and exploratory ("what does this field even look like?")</li>
+    <li><strong>How are findings combined?</strong> <strong>Aggregative</strong> — pooling comparable findings together, assuming they measure roughly the same thing (adding) — vs. <strong>configurative</strong> — arranging diverse findings to build a new interpretation or argument (arranging)</li>
+  </ul>
+  <div class="tip-box">
+    <strong>Quick gut-check:</strong> if combining two studies' findings
+    could sensibly produce one number (like a meta-analysis's pooled effect
+    size), that's aggregative. If combining them produces a new sentence of
+    interpretation instead of a number, that's configurative.
+  </div>
+
+  <h2><span class="section-num">03</span>An Approximate Map</h2>
+  <div class="diagram-box">
+    <p style="text-align:center; color:var(--text-dim); font-size:0.85rem; margin-top:0;">
+      This is a teaching map, not a precise measurement — several types
+      (integrative review especially) straddle quadrants on purpose.
+    </p>
+    <div style="display:grid; grid-template-columns: auto 1fr 1fr; grid-template-rows: auto 1fr 1fr; gap:2px; font-size:0.85rem;">
+      <div></div>
+      <div style="text-align:center; color:var(--accent); font-family:'JetBrains Mono',monospace; font-size:0.75rem;">← NARROW QUESTION</div>
+      <div style="text-align:center; color:var(--accent); font-family:'JetBrains Mono',monospace; font-size:0.75rem;">BROAD QUESTION →</div>
+
+      <div style="writing-mode:vertical-rl; transform:rotate(180deg); color:var(--accent); font-family:'JetBrains Mono',monospace; font-size:0.75rem; text-align:center;">CONFIGURATIVE ↑</div>
+      <div style="background:var(--bg-raised); border:1px solid var(--border); border-radius:6px; padding:12px;">
+        <strong>Narrow + Configurative</strong>
+        <ul>
+          <li><a href="concept_critical_review.html">Critical review</a></li>
+          <li><a href="concept_realist_review.html">Realist review</a></li>
+          <li><a href="concept_meta_ethnography.html">Meta-ethnography</a></li>
+          <li><a href="concept_meta_synthesis.html">Qualitative systematic review / meta-synthesis</a></li>
+          <li>Positioning / Related-Work review <span class="status-badge">Modules 27–28</span></li>
+        </ul>
+      </div>
+      <div style="background:var(--bg-raised); border:1px solid var(--border); border-radius:6px; padding:12px;">
+        <strong>Broad + Configurative</strong>
+        <ul>
+          <li><a href="concept_scoping_review.html">Scoping review</a></li>
+          <li><a href="concept_mapping_review.html">Mapping review / systematic map</a></li>
+          <li><a href="concept_narrative_review.html">Traditional / narrative review</a></li>
+          <li><a href="concept_state_of_the_art_review.html">State-of-the-art review</a></li>
+          <li><a href="concept_overview.html">Overview</a></li>
+          <li><a href="concept_integrative_review.html">Integrative review</a></li>
+          <li>Thesis narrative-synthesis review <span class="status-badge">Modules 29–30</span></li>
+        </ul>
+      </div>
+
+      <div style="writing-mode:vertical-rl; transform:rotate(180deg); color:var(--accent); font-family:'JetBrains Mono',monospace; font-size:0.75rem; text-align:center;">AGGREGATIVE ↓</div>
+      <div style="background:var(--bg-raised); border:1px solid var(--border); border-radius:6px; padding:12px;">
+        <strong>Narrow + Aggregative</strong>
+        <ul>
+          <li><a href="concept_systematic_review.html">Systematic review</a></li>
+          <li><a href="concept_meta_analysis.html">Meta-analysis</a></li>
+          <li><a href="concept_umbrella_review.html">Umbrella review</a></li>
+          <li><a href="concept_systematic_search_and_review.html">Systematic search and review</a></li>
+        </ul>
+      </div>
+      <div style="background:var(--bg-raised); border:1px solid var(--border); border-radius:6px; padding:12px;">
+        <strong>Broad + Aggregative</strong>
+        <ul>
+          <li><a href="concept_bibliometric_review.html">Bibliometric review / citation analysis</a></li>
+          <li><a href="concept_mixed_methods_review.html">Mixed studies / mixed methods review</a></li>
+          <li><a href="concept_rapid_review.html">Rapid review</a></li>
+          <li><a href="concept_systematized_review.html">Systematized review</a></li>
+          <li><a href="concept_living_review.html">Living systematic review</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <h2><span class="section-num">04</span>All Nineteen Types, One Line Each</h2>
+  <table>
+    <tr><th>Type</th><th>One-line definition</th></tr>
+    <tr><td><a href="concept_systematic_review.html">Systematic review</a></td><td>Exhaustive, protocol-driven search and synthesis to answer a focused question, with every decision logged</td></tr>
+    <tr><td><a href="concept_meta_analysis.html">Meta-analysis</a></td><td>Statistical pooling of effect sizes across studies into one combined estimate</td></tr>
+    <tr><td><a href="concept_scoping_review.html">Scoping review</a></td><td>Maps the breadth of a field — what exists, what's studied, what's missing — without judging effect or quality</td></tr>
+    <tr><td><a href="concept_mapping_review.html">Mapping review / systematic map</a></td><td>Catalogs and codes existing research by characteristics (design, population, topic) to visualize where evidence clusters and gaps sit</td></tr>
+    <tr><td><a href="concept_rapid_review.html">Rapid review</a></td><td>A systematic review's methodology compressed under a time constraint, with explicitly documented simplifications</td></tr>
+    <tr><td><a href="concept_narrative_review.html">Traditional / narrative review</a></td><td>An expert-guided, non-systematic account of a topic, organized to build understanding or argument rather than exhaustively account for all evidence</td></tr>
+    <tr><td><a href="concept_critical_review.html">Critical review</a></td><td>Goes beyond describing evidence to critique and reconceptualize it, often producing a new conceptual model</td></tr>
+    <tr><td><a href="concept_state_of_the_art_review.html">State-of-the-art review</a></td><td>Surveys current/most recent understanding of a topic, prioritizing recency over historical completeness</td></tr>
+    <tr><td><a href="concept_overview.html">Overview</a></td><td>A broad, umbrella-adjacent term for a review summarizing a body of evidence at a high level, often for a non-specialist audience</td></tr>
+    <tr><td><a href="concept_umbrella_review.html">Umbrella review</a></td><td>A review of reviews — treats other systematic reviews/meta-analyses as its unit of analysis</td></tr>
+    <tr><td><a href="concept_meta_synthesis.html">Qualitative systematic review / meta-synthesis</a></td><td>Systematically synthesizes findings across qualitative studies into new interpretive conclusions, without pooling numbers</td></tr>
+    <tr><td><a href="concept_meta_ethnography.html">Meta-ethnography</a></td><td>A specific meta-synthesis method that "translates" concepts across qualitative studies into a higher-order interpretation</td></tr>
+    <tr><td><a href="concept_realist_review.html">Realist review</a></td><td>Asks not just "does it work" but "what works, for whom, under what circumstances, and why" — focused on underlying mechanisms</td></tr>
+    <tr><td><a href="concept_integrative_review.html">Integrative review</a></td><td>Combines findings from studies of different methodologies (quantitative and qualitative) into one synthesis</td></tr>
+    <tr><td><a href="concept_mixed_methods_review.html">Mixed studies / mixed methods review</a></td><td>Systematically includes and synthesizes quantitative, qualitative, and mixed-methods primary studies side by side</td></tr>
+    <tr><td><a href="concept_bibliometric_review.html">Bibliometric review / citation analysis</a></td><td>Analyzes the literature itself as data — citation counts, co-authorship, co-citation clusters — rather than synthesizing findings</td></tr>
+    <tr><td><a href="concept_living_review.html">Living systematic review</a></td><td>A systematic review maintained as a continuously updated, versioned artifact rather than a one-time snapshot</td></tr>
+    <tr><td><a href="concept_systematic_search_and_review.html">Systematic search and review</a></td><td>Uses a systematic, reproducible search, but applies non-systematic (often narrative) synthesis to the results</td></tr>
+    <tr><td><a href="concept_systematized_review.html">Systematized review</a></td><td>Attempts elements of systematic-review methodology (typically as a student assignment or single-reviewer project) without meeting the full standard</td></tr>
+  </table>
+
+  <h2><span class="section-num">05</span>Limits / What This Module Cannot Do</h2>
+  <div class="compare-grid">
+    <div class="compare-col cant">
+      <h4>This module does NOT</h4>
+      <ul>
+        <li>Teach you to run any of these review types — no code, no working pipeline</li>
+        <li>Rank them by rigor — a well-executed scoping review is not a "worse" systematic review, it answers a different question</li>
+        <li>Cover every review-type name ever coined — this is a representative map, not an exhaustive taxonomy</li>
+      </ul>
+    </div>
+    <div class="compare-col can">
+      <h4>This module DOES</h4>
+      <ul>
+        <li>Let you correctly name what you're trying to do before you start</li>
+        <li>Point you to the exact module that builds that type's actual pipeline</li>
+        <li>Prevent the single most common beginner error: calling something a "systematic review" that isn't one</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2><span class="section-num">06</span>How to Use This Module</h2>
+  <ol class="checklist">
+    <li>Read the analogy and the two-axis map above until you can place your own project on it</li>
+    <li>Open <a href="concept_how_they_connect.html">the hub page</a> for the full comparison grid and the commonly-confused-pairs table</li>
+    <li>Read the one or two <code>concept_*.html</code> pages that match your project</li>
+    <li>Follow that concept page's "how this connects" link to the actual course module that builds it</li>
+  </ol>
+  <div class="warning-box">
+    <strong>Getting a "none of these quite fit" result?</strong> That's
+    normal — real projects often blend two types (e.g. a scoping review with
+    a light quality appraisal bolted on). Name the closest primary type,
+    document the blend explicitly, and move on; methodologists argue about
+    these boundaries too.
+  </div>
+
+  <h2><span class="section-num">07</span>Brain Exercise</h2>
+  <div class="brain-exercise">
+    <details>
+      <summary>You want to know "does cognitive behavioral therapy reduce anxiety scores more than medication?" — a single, specific, measurable comparison, and you have months and a team. Which type, and why?</summary>
+      <div class="answer">
+        <strong>Systematic review with meta-analysis.</strong> The question
+        is narrow (one specific comparison) and the outcome is a number
+        (anxiety score) that's plausible to pool across studies —
+        aggregative. You have the time budget for the full protocol-driven
+        rigor. If you only had two weeks, the same question would push you
+        toward a <em>rapid review</em> instead — same shape of question,
+        compressed methodology.
+      </div>
+    </details>
+  </div>
+
+  <h2><span class="section-num">08</span>There Are No Dumb Questions</h2>
+  <div class="qa-entry">
+    <div class="q">Isn't "systematic review" just the correct name for any careful literature review?</div>
+    <div class="a">No — it's a specific methodology with specific requirements (protocol, comprehensive search, PRISMA reporting). Calling a narrative review "systematic" because you were thorough is the single most common misuse of the term in student work.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">What's actually different between a scoping review and a mapping review? They sound the same.</div>
+    <div class="a">Close cousins. A mapping review's output is usually a coded, visual catalog of study characteristics (a literal map/chart of where evidence clusters). A scoping review's output is usually a narrative account of the field's breadth. In practice many projects do both at once — see the hub page's confused-pairs table.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">Why does "systematized review" even exist as a separate category from "systematic review"?</div>
+    <div class="a">Because a huge amount of real published work (especially student dissertations) uses systematic-review-style methods but can't meet the full standard — often just one reviewer instead of two independently screening. Naming it honestly instead of overclaiming "systematic" is the entire point of the category.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">Where does the USENIX-style "Related Work" section from this course's Modules 27–28 fit on the map?</div>
+    <div class="a">Narrow + configurative, same quadrant as critical review and realist review — it's making an argument (a comparison-driven case for novelty), not pooling numbers or mapping breadth.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">Do I need to read all 19 concept pages before starting Module 1?</div>
+    <div class="a">No. Read the ones near whatever you're trying to build. Module 1 onward builds the systematic-review engine specifically — if that's your goal, you only strictly need this page and the systematic review / meta-analysis concept pages.</div>
+  </div>
+
+  <h2><span class="section-num">09</span>What's Next</h2>
+  <p>With the map in hand, Track 1 starts building the most rigorous,
+  most heavily-engineered vehicle on it: the systematic review engine.
+  <a href="../../track1/01_research_question_formalizer/tutorial.html">Module 1 — Research Question Formalizer</a>
+  starts at the very first step — turning a fuzzy question into something
+  structured enough to search for.</p>
+
+  <div class="module-footer-nav">
+    <div class="prev"><span class="disabled">← Course start</span></div>
+    <div class="next"><a href="../../track1/01_research_question_formalizer/tutorial.html">Module 1: Research Question Formalizer →</a></div>
+  </div>
+</div>
+</body>
+</html>
