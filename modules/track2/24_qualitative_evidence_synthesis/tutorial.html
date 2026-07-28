@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Module 24: Qualitative Evidence Synthesis (Meta-Ethnography)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+<style>:root{--accent:#a0527a;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Module 24 — Track 2: Applied Layer</span>Qualitative Evidence Synthesis (Meta-Ethnography)</h1>
+
+  <div class="prereq-tags">
+    <span class="status-badge">Depends on Track 1:</span>
+    <a href="../../track1/15_thematic_coding_engine/tutorial.html">Module 15</a>
+  </div>
+
+  <h2><span class="section-num">00</span>Before You Start</h2>
+  <p>Finished <a href="../../track1/15_thematic_coding_engine/tutorial.html">Module 15</a> and
+  read <a href="../../track0_orientation/00_literature_review_landscape/concept_meta_ethnography.html">Module 0's Meta-Ethnography concept page</a> —
+  this module implements the "translation" step that page describes.</p>
+
+  <div class="warning-box">
+    <strong>This module's own demo contains a real mistake, on purpose.</strong>
+    Its first run genuinely misclassified two agreeing excerpts as
+    contradictory. Rather than quietly rewrite the example text to hide
+    it, the demo keeps it and explains exactly why it happened — see
+    Section 04 and the Brain Exercise.
+  </div>
+
+  <h2><span class="section-num">01</span>The Big Analogy</h2>
+  <div class="analogy-box">
+    <span class="label">Two travelers, two languages, one translator</span>
+    Two travelers describe the same city to a translator — one in
+    French, one in Japanese. The translator's job isn't just converting
+    words; it's figuring out whether the two travelers are actually saying
+    the same thing (reciprocal), flatly disagreeing (refutational), or
+    each describing one half of a bigger picture neither alone captured
+    (line-of-argument). A careless translator who only checks for the
+    presence of a negation word in each sentence — instead of what that
+    negation actually means in context — will sometimes get it wrong. This
+    module's translator does exactly that, and its own demo catches it
+    doing so.
+  </div>
+
+  <h2><span class="section-num">02</span>What Happens, Step by Step</h2>
+  <ol class="checklist">
+    <li>Each study's raw excerpts are coded independently via Module 15's real, unmodified <code>open_code()</code></li>
+    <li><code>translate_studies()</code> groups every excerpt by open code across all studies, then compares every pair of studies sharing a code</li>
+    <li>A simple negation-marker check decides <strong>reciprocal</strong> (both excerpts negated the same way, or neither is) vs. <strong>refutational</strong> (one is negated, one isn't)</li>
+    <li>Module 15's <code>axial_code()</code> groups all studies' excerpts into themes, exactly as before</li>
+    <li><code>line_of_argument()</code> combines two non-empty themes by name into one new templated sentence — demonstrating the <em>shape</em> of meta-ethnography's most interpretive step, not performing real interpretation</li>
+  </ol>
+
+  <h2><span class="section-num">03</span>A Map of the State</h2>
+  <div class="diagram-box">
+    <pre style="border:none; background:none; padding:0;"><code>Study 1: "I actually get more done without people stopping by my desk."
+Study 2: "I'm actually less productive without interruption from colleagues."
+        │  both carry code "fewer_interruptions"
+        ▼
+_is_negated(Study 1 excerpt)?  ->  False  (no marker)
+_is_negated(Study 2 excerpt)?  ->  True   ("actually less" is a marker)
+        │
+        ▼  False != True
+RELATION: REFUTATIONAL   <- genuinely correct: these two studies disagree
+
+Study 1: "I miss being able to just turn to someone and ask a question."
+Study 2: "Some days I don't talk to another human being..."
+        │  both carry code "social_isolation"
+        ▼
+_is_negated(Study 1 excerpt)?  ->  False
+_is_negated(Study 2 excerpt)?  ->  True   ("n't" is a marker)
+        │
+        ▼  False != True
+RELATION: REFUTATIONAL   <- WRONG: both excerpts actually describe
+                             isolation (agreement) — the "don't" describes
+                             the phenomenon, doesn't negate a claim about it</code></pre>
+  </div>
+
+  <h2><span class="section-num">04</span>The Code, Explained</h2>
+  <pre><code>_NEGATION_MARKERS = ("not ", "n't", "never", "no longer", "actually less", "actually worse")
+
+def _is_negated(text: str) -> bool:
+    lowered = text.lower()
+    return any(marker in lowered for marker in _NEGATION_MARKERS)</code></pre>
+  <p>This function cannot tell "I don't talk to anyone" (negation
+  describing a state of isolation) from "I don't think that's true"
+  (negation of a claim) — both contain <code>"n't"</code>, and the check
+  has no way to look past the literal marker to what it's actually doing
+  in the sentence. That gap is exactly what produced the real
+  misclassification above.</p>
+
+  <h2><span class="section-num">05</span>Limits / What You Cannot Do Yet</h2>
+  <div class="compare-grid">
+    <div class="compare-col cant">
+      <h4>Can't do yet</h4>
+      <ul>
+        <li>Reliably tell "negation describing a phenomenon" from "negation of a claim" — a real, demonstrated failure mode, not hypothetical</li>
+        <li>Perform genuine line-of-argument reasoning — <code>line_of_argument()</code> names two themes and asserts a connection by template, it doesn't discover one</li>
+        <li>Handle more than a pairwise comparison per code — three-plus-study agreement/disagreement patterns aren't classified as a group</li>
+      </ul>
+    </div>
+    <div class="compare-col can">
+      <h4>Can do</h4>
+      <ul>
+        <li>Correctly classify a genuine disagreement between two studies' findings on the same code</li>
+        <li>Make its own classification mistakes visible and explainable rather than silently wrong</li>
+        <li>Demonstrate the real, three-part structure of meta-ethnography's translation process</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2><span class="section-num">06</span>Run It</h2>
+  <pre><code>python meta_ethnography.py</code></pre>
+  <p>Expected output (deterministic, no network involved) — note both the
+  correct and the incorrect classification appear, each real:</p>
+  <pre><code>All self-checks passed.
+
+Translations (meta-ethnography's core step)
+
+  code=social_isolation  Study 1 (Tech Sector Interviews) <-> Study 2 (Public Sector Interviews)  RELATION: REFUTATIONAL
+    A: 'I miss being able to just turn to someone and ask a quick question.'
+    B: "Some days I don't talk to another human being until my partner gets home."
+    NOTE: this is a REAL, honest limitation of the negation heuristic, not a
+    correct finding — both excerpts actually describe isolation (agreement)...
+
+  code=fewer_interruptions  Study 1 (Tech Sector Interviews) <-> Study 2 (Public Sector Interviews)  RELATION: REFUTATIONAL
+    A: 'I actually get more done without people stopping by my desk all day.'
+    B: "I'm actually less productive without interruption from colleagues throughout the day."
+
+Line-of-argument synthesis
+Line-of-argument synthesis: no single included study states this directly, but
+combining "Disrupted Social Connection" (2 excerpts) with "Changed Work Rhythm"
+(2 excerpts) across studies suggests remote work reshapes daily experience
+along two axes at once...</code></pre>
+
+  <h2><span class="section-num">07</span>Brain Exercise</h2>
+  <div class="brain-exercise">
+    <details>
+      <summary>Why does this tutorial keep the misclassified social_isolation example instead of quietly editing the excerpt text so both results come out correct?</summary>
+      <div class="answer">
+        Because editing it away would delete the single most honest piece
+        of evidence this module can offer: a real, first-run demonstration
+        of exactly why simple keyword heuristics are risky for qualitative
+        judgment calls. If this tutorial only showed the correct
+        <code>fewer_interruptions</code> classification, a reader could
+        walk away believing the negation heuristic is reliable — a false
+        impression this course's quality bar exists to prevent. Keeping
+        the mistake, and explaining it precisely, teaches the actual
+        lesson: automated heuristics can get qualitative nuance wrong in
+        specific, understandable ways, which is exactly why real
+        meta-ethnography is done by trained researchers, not scripts.
+      </div>
+    </details>
+  </div>
+
+  <h2><span class="section-num">08</span>There Are No Dumb Questions</h2>
+  <div class="qa-entry">
+    <div class="q">Could the negation heuristic be fixed to avoid this specific mistake?</div>
+    <div class="a">Partially — you could special-case phrases like "don't talk to," "don't see," "don't interact with" as describing isolation rather than negating a claim. But that would just move the same underlying problem to different phrasing ("I barely speak to anyone" has no negation marker at all, and would be misclassified the other way). This is a real, open problem in automated sentiment/stance detection, not something a short keyword list can fully solve.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">Is `line_of_argument()`'s output actually meta-ethnography, or just a sentence template?</div>
+    <div class="a">Structurally it's a template — see DECISIONS.md. Real line-of-argument synthesis requires a human researcher to notice a genuinely new connection between themes that neither theme states alone, which is a real act of interpretation this function doesn't perform. What it demonstrates is the <em>shape</em> that step's output takes, not a claim that real synthesis happened automatically.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">Why compare studies pairwise instead of all at once?</div>
+    <div class="a">Simplicity, and it matches how Noblit & Hare originally described the process — translating studies into each other's terms one relationship at a time. A three-or-more-study group classification (do all five studies broadly agree, or is there a majority-vs-minority split?) is a real, harder problem this module doesn't attempt.</div>
+  </div>
+
+  <h2><span class="section-num">09</span>What's Next</h2>
+  <p>Module 25 shifts from synthesizing primary studies to synthesizing
+  other systematic reviews themselves — an umbrella review, treating
+  reviews as its unit of analysis.</p>
+
+  <div class="module-footer-nav">
+    <div class="prev"><a href="../23_bibliometric_network_analyzer/tutorial.html">← Module 23: Bibliometric Network Analyzer</a></div>
+    <div class="next"><a href="../25_umbrella_review_aggregator/tutorial.html">Module 25: Umbrella Review Aggregator →</a></div>
+  </div>
+</div>
+</body>
+</html>
