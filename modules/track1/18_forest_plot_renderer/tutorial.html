@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Module 18: Forest Plot Renderer</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+<style>:root{--accent:#3f6f9f;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Module 18 — Track 1: Core Engine</span>Forest Plot Renderer</h1>
+
+  <h2><span class="section-num">00</span>Before You Start</h2>
+  <p>Finished <a href="../17_meta_analysis_engine/tutorial.html">Module 17</a> —
+  this module renders that module's exact output, both the fixed- and
+  random-effects versions.</p>
+
+  <h2><span class="section-num">01</span>The Big Analogy</h2>
+  <div class="analogy-box">
+    <span class="label">The technique's own name, taken literally, again</span>
+    A forest plot is named for exactly what it looks like: many thin
+    horizontal lines stacked in rows, each with a marker somewhere along
+    it — squint, and it resembles a row of tree trunks standing in a
+    forest. But a forester doesn't judge the whole forest by trunk count
+    alone; there's a clearing at the bottom marking where the forest's
+    real canopy centers once every tree's actual girth is weighed in —
+    thicker trees (more precise studies) pull that center more than thin
+    saplings do.
+    <br><br>
+    The squares in <code>render_forest_plot()</code> are the trunks, sized
+    by <code>1/SE²</code> — a study's actual statistical weight. The
+    diamond is the clearing: the pooled estimate, its width showing exactly
+    how confident the combined forest is.
+  </div>
+
+  <h2><span class="section-num">02</span>What Happens, Step by Step</h2>
+  <ol class="checklist">
+    <li>For each study, <code>_to_natural()</code> converts its pooling-scale estimate and SE back to a displayable point + CI (undoing the log transform for OR/RR, same as Module 17's own <code>display_estimate()</code>)</li>
+    <li>Each study becomes one row: a horizontal line spanning its CI, with a square marker sized proportionally to its inverse-variance weight</li>
+    <li>The pooled result becomes a diamond, its horizontal span equal to the pooled confidence interval</li>
+    <li>A dashed vertical line marks the no-effect value (1.0 for ratios, 0.0 for differences)</li>
+    <li>The x-axis switches to a log scale automatically whenever the measure is a ratio, exactly mirroring Module 17's scale-aware logic</li>
+    <li>The figure is saved as a real PNG and — in this module's self-checks — read back and verified by its actual file bytes</li>
+  </ol>
+
+  <h2><span class="section-num">03</span>A Map of the State</h2>
+  <p>Both plots below are the actual, unedited files this module produced
+  from Module 17's real pooled results — not mockups.</p>
+  <div class="diagram-box">
+    <img src="forest_plot_fixed.png" alt="Fixed-effect forest plot: five studies plus a pooled diamond entirely to the right of the no-effect line" style="max-width:100%; border-radius:6px;">
+    <p style="text-align:center; color:var(--text-dim); font-size:0.85rem;">Fixed-effect model — the diamond sits entirely right of the dashed no-effect line.</p>
+  </div>
+  <div class="diagram-box">
+    <img src="forest_plot_random.png" alt="Random-effects forest plot: the same five studies, but the pooled diamond now straddles the no-effect line" style="max-width:100%; border-radius:6px;">
+    <p style="text-align:center; color:var(--text-dim); font-size:0.85rem;">Random-effects model, same five studies — the diamond now visibly straddles the no-effect line.</p>
+  </div>
+
+  <h2><span class="section-num">04</span>The Code, Explained</h2>
+  <pre><code>marker_size = 60 + 340 * (weight / max_weight)
+ax.scatter([est], [y_pos], s=marker_size, marker="s", color="#2f6f9f", zorder=3)
+
+# ...
+
+diamond = mpatches.Polygon(
+    [[pooled_lo, diamond_y], [pooled_est, diamond_y + half_height],
+     [pooled_hi, diamond_y], [pooled_est, diamond_y - half_height]],
+    closed=True, facecolor="#9f3f3f", edgecolor="#5f1f1f", zorder=3,
+)</code></pre>
+  <p>The diamond is drawn as an explicit four-point polygon — left tip at
+  the pooled CI's lower bound, right tip at its upper bound, top and
+  bottom points at the pooled estimate itself — which is exactly what
+  gives it its width-equals-uncertainty shape.</p>
+
+  <h2><span class="section-num">05</span>Limits / What You Cannot Do Yet</h2>
+  <div class="compare-grid">
+    <div class="compare-col cant">
+      <h4>Can't do yet</h4>
+      <ul>
+        <li>Render a subgroup-split forest plot (studies grouped by, say, study design) — one flat list only</li>
+        <li>Show a funnel plot for publication bias — that's Module 19</li>
+        <li>Export to any format besides PNG (SVG/PDF are one-line matplotlib changes, just not wired up here)</li>
+      </ul>
+    </div>
+    <div class="compare-col can">
+      <h4>Can do</h4>
+      <ul>
+        <li>Turn a real pooled meta-analysis result into a real, field-standard chart</li>
+        <li>Correctly scale markers by real statistical weight, not a cosmetic guess</li>
+        <li>Make the fixed-vs-random-effects divergence visually obvious, not just numerically true</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2><span class="section-num">06</span>Run It</h2>
+  <pre><code>python forest_plot.py</code></pre>
+  <p>Expected output (deterministic, no network involved):</p>
+  <pre><code>All self-checks passed.
+
+fixed-effect forest plot: forest_plot_fixed.png, 30482 bytes, valid PNG header: True
+random-effect forest plot: forest_plot_random.png, 30290 bytes, valid PNG header: True</code></pre>
+
+  <div class="warning-box">
+    <strong>Getting a backend error mentioning Tkinter or a display?</strong>
+    Something imported <code>matplotlib.pyplot</code> before this module's
+    <code>matplotlib.use("Agg")</code> call took effect — make sure no
+    other import in your session already loaded pyplot with a different
+    backend first.
+  </div>
+
+  <h2><span class="section-num">07</span>Brain Exercise</h2>
+  <div class="brain-exercise">
+    <details>
+      <summary>Study D's square is visibly smaller than Study A's in both plots. Why doesn't the random-effects model change that?</summary>
+      <div class="answer">
+        Because each study's drawn marker size reflects that <em>study's
+        own</em> precision (its individual `1/SE²`), which doesn't change
+        depending on which pooling model is used afterward — Study D's
+        underlying data and sample size are the same regardless. What
+        <em>does</em> change between the two plots is invisible at the
+        individual-study level and only shows up in the diamond: the
+        random-effects model re-weights every study's <em>contribution to
+        the pooled estimate</em> using `1/(SE² + τ²)` instead of `1/SE²`
+        alone — you can't see that re-weighting in any single square, only
+        in how much wider and differently-centered the final diamond ends
+        up.
+      </div>
+    </details>
+  </div>
+
+  <h2><span class="section-num">08</span>There Are No Dumb Questions</h2>
+  <div class="qa-entry">
+    <div class="q">Why is the diamond a separate shape instead of just a wider square?</div>
+    <div class="a">Convention, but a load-bearing one — anyone who has read a published forest plot recognizes a diamond as "this row is the summary, not another individual study" at a glance. Using a square for both would make the pooled result blend in with the individual studies instead of standing apart from them.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">What would happen if I fed this an SMD-based meta-analysis instead of an OR-based one?</div>
+    <div class="a">The x-axis would stay linear instead of switching to log scale, and the no-effect line would be drawn at 0 instead of 1 — both handled automatically by checking `meta_result.scale`, the same field Module 17 already computes. No code in this module needs to change for that to work correctly.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">Is 30KB a reasonable size for a plot like this, or could that number hide a broken image?</div>
+    <div class="a">It's consistent with a real, moderately detailed matplotlib chart at 130 DPI — a genuinely blank or near-blank PNG would typically be under a kilobyte, which is exactly why the self-checks assert a size floor of 1000 bytes rather than just checking the file exists.</div>
+  </div>
+
+  <h2><span class="section-num">09</span>What's Next</h2>
+  <p>A forest plot shows how studies agree or disagree with each other —
+  it says nothing about whether the studies included are a biased sample
+  of all the evidence that exists. Module 19 builds a publication bias
+  detector: a funnel plot, plus Egger's test.</p>
+
+  <div class="module-footer-nav">
+    <div class="prev"><a href="../17_meta_analysis_engine/tutorial.html">← Module 17: Meta-Analysis Engine</a></div>
+    <div class="next"><a href="../19_publication_bias_detector/tutorial.html">Module 19: Publication Bias Detector →</a></div>
+  </div>
+</div>
+</body>
+</html>
