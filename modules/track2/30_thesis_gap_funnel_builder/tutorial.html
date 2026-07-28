@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Module 30: Thesis Gap-to-Research-Question Funnel Builder</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+<style>:root{--accent:#d4883a;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Module 30 — Track 2: Applied Layer — Beginner On-Ramp — Course Finale</span>Thesis Gap-to-Research-Question Funnel Builder</h1>
+
+  <div class="callout">
+    <strong>This is the last content module in the course.</strong> If you
+    started at Module 29, you can finish the beginner track here without
+    ever touching the rest of the pipeline. If you built all thirty
+    modules, this is where the very first thing you built — Module 1's
+    <code>formalize()</code> — gets used one final time.
+  </div>
+
+  <div class="prereq-tags">
+    <span class="status-badge">Depends on:</span>
+    <a href="../29_synthesis_matrix_builder/tutorial.html">Module 29 (Track 2)</a>
+    <a href="../../track1/01_research_question_formalizer/tutorial.html">Module 1 (Track 1)</a>
+  </div>
+
+  <h2><span class="section-num">00</span>Before You Start</h2>
+  <p>Finished <a href="../29_synthesis_matrix_builder/tutorial.html">Module 29</a> —
+  this module picks up exactly where that one's coverage count left off.</p>
+
+  <h2><span class="section-num">01</span>The Big Analogy</h2>
+  <div class="analogy-box">
+    <span class="label">An actual funnel</span>
+    Pour a whole bucket of water at the wide top of a funnel and it has to
+    narrow, forced by the funnel's own shape, until it exits as one thin
+    stream that fits through a single bottle's neck. Nobody has to
+    convince the water to narrow — the shape does it.
+    <br><br>
+    <code>build_funnel()</code> is that shape. Stage 1 is the whole
+    bucket — every theme the literature covers. Stage 2 narrows using a
+    real measurement (which themes are thin). Stage 3 is the single
+    stream — one specific gap. And then <code>formalize_thesis_question()</code>
+    pours that stream through the exact bottle-neck Module 1 built at the
+    very start of this course: a validated, PICO-structured research
+    question.
+  </div>
+
+  <h2><span class="section-num">02</span>What Happens, Step by Step</h2>
+  <ol class="checklist">
+    <li><code>identify_thin_themes()</code> reuses Module 29's <code>coverage()</code> directly — any theme with only <code>threshold</code> sources or fewer is thin</li>
+    <li><code>build_funnel()</code> produces three stages: broad context (every theme, named), narrowing (which themes are thin, with the real count), and gap (the single thinnest theme, named as the focus)</li>
+    <li><code>formalize_thesis_question()</code> writes a question sentence targeting that gap theme, then hands it directly to Module 1's real <code>formalize()</code></li>
+    <li>The returned <code>ResearchQuestion</code> is validated exactly the way Module 1 validates any question — every PICO slot filled, or <code>MissingSlotsError</code></li>
+  </ol>
+
+  <h2><span class="section-num">03</span>A Map of the State</h2>
+  <div class="diagram-box">
+    <pre style="border:none; background:none; padding:0;"><code>matrix.coverage() = {"Self-reported outcomes": 2, "Objectively measured
+                      outcomes": 2, "Task-type dependence": 1}
+        │
+        ▼  identify_thin_themes(threshold=1)
+["Task-type dependence"]        <- the ONLY theme at or below the threshold
+        │
+        ▼  build_funnel()
+Stage 1: "...organizes around 3 recurring themes: ..."
+Stage 2: "...Task-type dependence is addressed by only 1 source..."
+Stage 3: '"Task-type dependence" is where this literature has the
+          least to say — a specific, defensible gap...'
+        │
+        ▼  formalize_thesis_question("Task-type dependence", ...)
+"Does task-type dependence moderate the effect of remote work on
+ productivity among knowledge workers..., compared to in-office work?"
+        │
+        ▼  formalize()  <-  Module 1's REAL function, unmodified
+ResearchQuestion(framework=PICO, slots={population: ..., intervention:
+  "remote work arrangements", comparison: "in-office work", outcome:
+  "productivity, as moderated by task-type dependence"})
+rq.validate()  ->  passes, every required slot filled</code></pre>
+  </div>
+
+  <h2><span class="section-num">04</span>The Code, Explained</h2>
+  <pre><code>def formalize_thesis_question(gap_theme, population, comparison):
+    question_text = (
+        f"Does {gap_theme.lower()} moderate the effect of remote work on productivity "
+        f"among {population}, compared to {comparison}?"
+    )
+    return formalize(
+        question_text,
+        framework=Framework.PICO,
+        slots={
+            "population": population,
+            "intervention": "remote work arrangements",
+            "comparison": comparison,
+            "outcome": f"productivity, as moderated by {gap_theme.lower()}",
+        },
+    )</code></pre>
+  <p><code>formalize</code> and <code>Framework</code> in that function
+  signature are imported directly from
+  <code>01_research_question_formalizer/formalizer.py</code> — not
+  reimplemented, not a lookalike. The literal function this course opened
+  with.</p>
+
+  <h2><span class="section-num">05</span>Limits / What You Cannot Do Yet</h2>
+  <div class="compare-grid">
+    <div class="compare-col cant">
+      <h4>Can't do yet</h4>
+      <ul>
+        <li>Detect themes where sources genuinely <em>contest</em> each other, not just where coverage is thin — an earlier version of this module tried and it didn't work on real data (see DECISIONS.md)</li>
+        <li>Write your actual thesis question for you — the template produces a scaffold a real researcher still has to refine and justify</li>
+        <li>Judge whether a thin theme is thin because it's genuinely under-researched, or because it just isn't very important</li>
+      </ul>
+    </div>
+    <div class="compare-col can">
+      <h4>Can do</h4>
+      <ul>
+        <li>Turn a real, computed coverage gap into a specific, checkable claim instead of a vague "more research is needed"</li>
+        <li>Produce a research question that's immediately, mechanically validated — not just written and hoped to be complete</li>
+        <li>Prove that Module 1's very first validation logic still works, unmodified, twenty-nine modules and two tracks later</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2><span class="section-num">06</span>Run It</h2>
+  <pre><code>python gap_funnel.py</code></pre>
+  <p>Expected output (deterministic, no network involved):</p>
+  <pre><code>All self-checks passed.
+
+The funnel, narrowing from broad context to one specific gap
+
+1. Broad context
+  The literature on remote work and productivity organizes around 3 recurring themes: Self-reported outcomes, Objectively measured outcomes, Task-type dependence.
+
+2. Narrowing
+  Coverage across these themes is uneven — Task-type dependence is addressed by only 1 source, while the others draw on multiple.
+
+3. Gap
+  "Task-type dependence" is where this literature has the least to say — a specific, defensible gap for a thesis to address, grounded directly in the synthesis matrix's own coverage count, not asserted from a general sense that 'more research is needed.'
+
+Formalized into an actual research question — reusing Module 1
+[PICO] Does task-type dependence moderate the effect of remote work on productivity among knowledge workers performing both solo and collaborative tasks, compared to in-office work?
+              population: knowledge workers performing both solo and collaborative tasks
+            intervention: remote work arrangements
+              comparison: in-office work
+                 outcome: productivity, as moderated by task-type dependence</code></pre>
+
+  <h2><span class="section-num">07</span>Brain Exercise</h2>
+  <div class="brain-exercise">
+    <details>
+      <summary>This module's demo data has a genuinely interesting disagreement in it — self-reported outcomes trend positive, objectively measured outcomes trend negative — but the funnel never mentions it. Why not, if it's real and interesting?</summary>
+      <div class="answer">
+        Because this module was honest about what it could actually detect
+        reliably. That cross-theme divergence is real and worth writing
+        about in an actual thesis — but automatically detecting it would
+        require comparing sentiment <em>across</em> themes, not just
+        counting sources <em>within</em> a theme, which is a harder problem
+        this module's simple coverage-count mechanism was never built to
+        solve (an early attempt at a "contested theme" detector, tried
+        during development, didn't find it either — see DECISIONS.md). The
+        funnel only claims the one thing it can actually prove: this
+        specific theme has unusually thin coverage. A real thesis writer
+        reading the synthesis matrix by eye would likely notice the
+        divergence too, and should — that's real analytical work no
+        mechanical count can substitute for.
+      </div>
+    </details>
+  </div>
+
+  <h2><span class="section-num">08</span>There Are No Dumb Questions</h2>
+  <div class="qa-entry">
+    <div class="q">Is the generated research question actually good enough to put in a real thesis proposal?</div>
+    <div class="a">As a starting draft, plausibly — as a final version, no. It's mechanically complete (every PICO slot filled, validated) but the specific phrasing, scope, and justification still need a real researcher's judgment. Think of it the way a course outline isn't a finished essay: it's correctly structured, and that's exactly as far as structure alone can take you.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">Why does closing the loop with Module 1 matter, beyond being a nice symmetry?</div>
+    <div class="a">Because it's real evidence for this whole course's premise: that building small, verified, reusable pieces one at a time adds up to something bigger than any single piece. Module 1 was never written with Module 30 in mind — it was written to formalize a systematic review's PICO question. That it works, unmodified, for a thesis research question too is proof the abstraction was genuinely sound, not just convenient for its original use.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">What would I actually do next, as a beginner who just finished this module?</div>
+    <div class="a">Build your own real synthesis matrix (Module 29) from your own real sources, run `identify_thin_themes()` on it, and see what it finds. If nothing looks thin, that's useful information too — it might mean your review question needs to narrow further before a gap becomes visible.</div>
+  </div>
+
+  <h2><span class="section-num">09</span>Course Complete</h2>
+  <p>Thirty modules: a systematic review engine built from scratch and
+  verified against live data (Track 1), then proven to generalize across
+  six review methodologies, a conference paper's positioning argument, and
+  a thesis chapter's narrative synthesis (Track 2) — plus the orientation
+  landscape and prerequisites layer that came before any of it. Every
+  claim in every <code>DECISIONS.md</code> traces back to real, executed
+  code, not a description of intended behavior. That was the whole point.</p>
+
+  <div class="module-footer-nav">
+    <div class="prev"><a href="../29_synthesis_matrix_builder/tutorial.html">← Module 29: Synthesis Matrix Builder</a></div>
+    <div class="next"><a href="../../../ROADMAP.md">Course roadmap →</a></div>
+  </div>
+</div>
+</body>
+</html>
