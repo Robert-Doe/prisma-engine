@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Module 8: Title/Abstract Screening Engine</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+<style>:root{--accent:#7a9e5c;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Module 8 — Track 1: Core Engine</span>Title/Abstract Screening Engine</h1>
+
+  <div class="prereq-tags">
+    <span class="status-badge">Prerequisites:</span>
+    <a href="../../../prerequisites/prereq_eligibility_criteria.html">Eligibility Criteria Logic</a>
+  </div>
+
+  <div class="warning-box">Needs internet access — the demo chains real Modules 4-7.</div>
+
+  <h2><span class="section-num">00</span>Before You Start</h2>
+  <p>Finished Modules 4 through 7. This module is where the
+  <code>excluded_by_reason</code> data Module 7 could previously only
+  simulate finally gets produced for real.</p>
+
+  <h2><span class="section-num">01</span>The Big Analogy</h2>
+  <div class="analogy-box">
+    <span class="label">The airport security line</span>
+    ID check, bag scan, metal detector, in that fixed order. If your ID
+    doesn't match your boarding pass, you get pulled aside for that reason
+    — nobody also blames you for what the metal detector might have found,
+    because you never got that far. One line, one order, and whichever
+    checkpoint stops you first is the only reason recorded.
+    <br><br>
+    <code>screen()</code> runs the exact same way: <code>DEFAULT_RULES</code>
+    is the fixed line of checkpoints, and the first one a record fails is
+    the only reason logged for it — later checkpoints never even see that
+    record.
+  </div>
+
+  <h2><span class="section-num">02</span>What Happens, Step by Step</h2>
+  <ol class="checklist">
+    <li>For each record, <code>screen()</code> walks <code>DEFAULT_RULES</code> in order: <code>has_abstract</code>, then <code>published_2015_or_later</code>, then <code>mentions_relevance_keyword</code></li>
+    <li>The first rule whose predicate returns <code>False</code> becomes that record's logged exclusion reason — checked no further</li>
+    <li>A record that passes every rule goes into <code>result.included</code></li>
+    <li><code>result.excluded_by_reason()</code> tallies exclusions into exactly the <code>dict[str, int]</code> shape Module 7's <code>log_screening()</code> expects — no conversion step needed</li>
+  </ol>
+
+  <h2><span class="section-num">03</span>A Map of the State</h2>
+  <div class="diagram-box">
+    <pre style="border:none; background:none; padding:0;"><code>Record(title="...", abstract=None, ..., source_format="PubMedESummary")
+        │
+        ▼
+has_abstract(rec)?  →  False  (abstract is None)
+        │
+        ▼  STOP — later rules never run for this record
+excluded: (rec, "no abstract available for screening")
+
+
+Record(title="...Telecommuting Frequencies...", abstract="...", year=2020,
+       source_format="ArXivAtom")
+        │
+        ▼
+has_abstract(rec)?  →  True
+        ▼
+published_2015_or_later(rec)?  →  True  (year=2020)
+        ▼
+mentions_relevance_keyword(rec)?  →  False  (no "productiv"/"performance"/
+                                              "output" stem in title+abstract)
+        │
+        ▼  STOP
+excluded: (rec, "no productivity/performance/output keyword found")</code></pre>
+  </div>
+
+  <h2><span class="section-num">04</span>The Code, Explained</h2>
+  <pre><code>def screen(records, rules):
+    result = ScreeningResult()
+    for rec in records:
+        failed_reason = None
+        for rule in rules:
+            if not rule.predicate(rec):
+                failed_reason = rule.name
+                break                     # <- later rules never run
+        if failed_reason is not None:
+            result.excluded.append((rec, failed_reason))
+        else:
+            result.included.append(rec)
+    return result</code></pre>
+  <p>And the rule that turned out to matter most in the real run — not a
+  hypothetical, an actual observed outcome:</p>
+  <pre><code>def has_abstract(rec: Record) -> bool:
+    return bool(rec.abstract and rec.abstract.strip())</code></pre>
+
+  <h2><span class="section-num">05</span>Limits / What You Cannot Do Yet</h2>
+  <div class="compare-grid">
+    <div class="compare-col cant">
+      <h4>Can't do yet</h4>
+      <ul>
+        <li>Screen on population/design criteria that need full text, not just title/abstract — that's Module 9</li>
+        <li>Recover from an upstream data gap — a record with no abstract is always excluded by this rule set, correctly but unavoidably</li>
+        <li>Weigh partial matches — a rule is strictly pass/fail, no "probably relevant" middle ground</li>
+      </ul>
+    </div>
+    <div class="compare-col can">
+      <h4>Can do</h4>
+      <ul>
+        <li>Apply the identical criteria to every record, with zero human inconsistency between the first record screened and the thousandth</li>
+        <li>Log a specific, correct reason for every exclusion</li>
+        <li>Feed directly into Module 7's PRISMA tracker with no glue code</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2><span class="section-num">06</span>Run It</h2>
+  <pre><code>python screening_engine.py</code></pre>
+  <p>Real output captured 2026-07-27 (your live records will differ):</p>
+  <pre><code>All self-checks passed.
+
+[... 5 PubMed + 5 arXiv records fetched, deduplicated to 10 ...]
+
+Screening decisions
+======================================================================
+  EXCLUDED [PubMedESummary] (no abstract available for screening): ...
+  EXCLUDED [PubMedESummary] (no abstract available for screening): ...
+  EXCLUDED [PubMedESummary] (no abstract available for screening): ...
+  EXCLUDED [PubMedESummary] (no abstract available for screening): ...
+  EXCLUDED [PubMedESummary] (no abstract available for screening): ...
+  EXCLUDED [     ArXivAtom] (no productivity/performance/output keyword found): ...
+  INCLUDED [     ArXivAtom]: Remote Work: Driver or Deterrent of Digital Product Innovati
+  INCLUDED [     ArXivAtom]: Personal Productivity and Well-being -- Chapter 2 of the 202
+  INCLUDED [     ArXivAtom]: Gender Inequality in Research Productivity During the COVID-
+  INCLUDED [     ArXivAtom]: Turning the Tables: The View from Offshore During 60 Days in
+
+Excluded by reason: {'no abstract available for screening': 5, 'no productivity/performance/output keyword found': 1}
+Included: 4 / 10
+
+Conservation holds across the full Module 4-8 chain.
+
+NOTE: PubMed-sourced records were excluded for lacking an abstract
+because Module 4 uses esummary, not efetch — a real upstream data
+gap surfacing honestly at the screening stage. See DECISIONS.md.</code></pre>
+
+  <div class="warning-box">
+    <strong>All your PubMed records getting excluded isn't a bug in this
+    module.</strong> It's a real, traceable consequence of Module 4's
+    documented choice to use <code>esummary</code> (no abstracts) instead
+    of <code>efetch</code>. If you need PubMed records to survive
+    screening on abstract content, that's a real reason to go back and
+    extend Module 4 to fetch abstracts — which is exactly how a real
+    pipeline's limitations get discovered and fixed.
+  </div>
+
+  <h2><span class="section-num">07</span>Brain Exercise</h2>
+  <div class="brain-exercise">
+    <details>
+      <summary>Why does <code>has_abstract</code> run first in <code>DEFAULT_RULES</code>, before the relevance-keyword check, rather than after it?</summary>
+      <div class="answer">
+        Because <code>mentions_relevance_keyword</code> searches title and
+        abstract text for a stem. If it ran first on a record with no
+        abstract, it would still technically "work" (searching an empty
+        string just fails to find the keyword) — but the record would then
+        be excluded for "no productivity/performance/output keyword found,"
+        which is a misleading, secondary consequence of the real problem.
+        Ordering <code>has_abstract</code> first ensures the reported
+        reason is always the most upstream, most accurate one: you can't
+        meaningfully evaluate relevance on text that was never there.
+      </div>
+    </details>
+  </div>
+
+  <h2><span class="section-num">08</span>There Are No Dumb Questions</h2>
+  <div class="qa-entry">
+    <div class="q">Isn't excluding every abstract-less record a huge loss of potentially relevant studies?</div>
+    <div class="a">In a real review, yes — which is exactly why a real review wouldn't stop at esummary. This module's honest reporting of "5 excluded for missing abstracts" is the signal that should send a reviewer back to fix the upstream extraction (fetch full abstracts via efetch, or retrieve them from another source) rather than accept the loss silently.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">Could I write a rule that checks something Module 3's Record doesn't currently store, like language?</div>
+    <div class="a">Not directly — a rule's predicate can only inspect fields that actually exist on the Record. Adding a language criterion for real would mean first extending Module 3's Record model (and whichever parser can supply it) with a language field, then writing the rule against it.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">What happens if <code>rules</code> is an empty list?</div>
+    <div class="a">Every record passes — the inner loop never finds a failing rule, so <code>failed_reason</code> stays <code>None</code> and everything goes to <code>result.included</code>. That's a real, sensible edge case, not a special-cased behavior: "no criteria" correctly means "nothing gets excluded."</div>
+  </div>
+
+  <h2><span class="section-num">09</span>What's Next</h2>
+  <p>Title/abstract screening is a coarse first pass — real eligibility
+  decisions often need the full text, not just what's visible from an
+  abstract. Module 9 builds the second-pass full-text eligibility engine,
+  operating only on the records that survived this stage.</p>
+
+  <div class="module-footer-nav">
+    <div class="prev"><a href="../07_prisma_flow_tracker/tutorial.html">← Module 7: PRISMA Flow Tracker</a></div>
+    <div class="next"><a href="../09_fulltext_eligibility_engine/tutorial.html">Module 9: Full-Text Eligibility Engine →</a></div>
+  </div>
+</div>
+</body>
+</html>
