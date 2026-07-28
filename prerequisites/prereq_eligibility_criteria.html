@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Prerequisite: Eligibility Criteria Logic</title>
+<link rel="stylesheet" href="../assets/style.css">
+<style>:root{--accent:#9b8cf2;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Prerequisite 5 of 9</span>Eligibility Criteria Logic</h1>
+
+  <div class="analogy-box">
+    <span class="label">The Big Analogy</span>
+    A rigorous screening process works like a bouncer with a written
+    checklist taped inside the door, decided before the club opened —
+    not a bouncer who sizes up each person in the moment and decides on
+    vibes. The list doesn't change depending on who's asking, and anyone
+    can check it against who got in and who didn't.
+  </div>
+
+  <h2><span class="section-num">01</span>Inclusion vs. exclusion criteria</h2>
+  <ul>
+    <li><strong>Inclusion criteria</strong> — properties a record <em>must</em> have to proceed (e.g. "population is adult knowledge workers")</li>
+    <li><strong>Exclusion criteria</strong> — properties that disqualify a record even if it meets every inclusion criterion (e.g. "conference abstract with no full text available")</li>
+  </ul>
+  <p>They're often two views of the same predicate, but keeping them separate
+  matters for reporting: PRISMA requires you to log <em>which specific
+  criterion</em> excluded each record, and "must include" vs. "excluded
+  because" read differently to someone auditing your decisions later.</p>
+
+  <h2><span class="section-num">02</span>Why criteria must be written down first (a priori)</h2>
+  <p>If you decide criteria while you're already looking at results, you can
+  unconsciously shape them to fit the answer you expected — a study that
+  contradicts your hypothesis suddenly looks "not quite relevant enough."
+  Pre-registering the criteria (writing them down, ideally in a public
+  protocol, before screening starts) is what makes the eventual excluded
+  list trustworthy rather than suspicious.</p>
+
+  <div class="warning-box">
+    <strong>The failure mode:</strong> criteria written loosely enough that
+    two reasonable people would classify the same study differently. "Recent
+    studies only" is not a criterion — "published 2015 or later" is.
+  </div>
+
+  <h2><span class="section-num">03</span>Criteria as a predicate over record fields</h2>
+  <p>Mechanically, eligibility criteria are just a boolean function over a
+  record's fields, derived directly from your PICO/PEO/SPIDER slots
+  (<a href="prereq_pico_frameworks.html">Prerequisite 1</a>):</p>
+  <pre><code>def is_eligible(record):
+    return (
+        record.population_matches("adult knowledge workers")
+        and record.year >= 2015
+        and record.study_design in {"RCT", "cohort", "cross-sectional"}
+        and record.language == "English"
+    )</code></pre>
+
+  <h2><span class="section-num">04</span>Common criteria categories</h2>
+  <table>
+    <tr><th>Category</th><th>Example</th></tr>
+    <tr><td>Population</td><td>Adults only; excludes pediatric studies</td></tr>
+    <tr><td>Study design</td><td>Excludes case reports and opinion pieces</td></tr>
+    <tr><td>Date range</td><td>Published 2015–present</td></tr>
+    <tr><td>Language</td><td>English-language full text available</td></tr>
+    <tr><td>Publication type</td><td>Peer-reviewed only; excludes preprints</td></tr>
+  </table>
+
+  <div class="callout">
+    <strong>Used by:</strong> <a href="../modules/track1/08_screening_engine/tutorial.html">Module 8 — Title/Abstract Screening Engine</a>,
+    <a href="../modules/track1/09_fulltext_eligibility_engine/tutorial.html">Module 9 — Full-Text Eligibility Engine</a>
+  </div>
+</div>
+</body>
+</html>

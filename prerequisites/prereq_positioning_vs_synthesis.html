@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Prerequisite: Positioning vs. Evidence-Synthesis Review</title>
+<link rel="stylesheet" href="../assets/style.css">
+<style>:root{--accent:#9b8cf2;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Prerequisite 8 of 9</span>Positioning vs. Evidence-Synthesis Review</h1>
+
+  <div class="analogy-box">
+    <span class="label">The Big Analogy</span>
+    A coroner's inquest and a defense attorney's closing argument both work
+    from the same pile of evidence, but they're doing different jobs. The
+    inquest tries to objectively account for everything the evidence shows,
+    pooled fairly, with no side to argue for. The closing argument is built
+    to make one specific case — it doesn't need to cover every angle, but
+    it absolutely cannot misrepresent the other side's evidence, because
+    that's the fastest way to lose credibility with the jury.
+  </div>
+
+  <h2><span class="section-num">01</span>Two different jobs</h2>
+  <table>
+    <tr><th></th><th>Evidence-synthesis review (PRISMA-style)</th><th>Positioning review (USENIX/OSDI/NSDI-style "Related Work")</th></tr>
+    <tr><td>Goal</td><td>Objectively answer "what does the evidence show?"</td><td>Justify "why does this specific new contribution matter?"</td></tr>
+    <tr><td>Coverage</td><td>Exhaustive — a comprehensive, reproducible search is the whole point</td><td>Selective — covers what's needed to establish the gap, not every tangential paper</td></tr>
+    <tr><td>Organizing structure</td><td>By theme or outcome, across all included studies equally</td><td>By approach/technique, each cluster contrasted against the new contribution</td></tr>
+    <tr><td>Typical artifact</td><td>Evidence table, forest plot, PRISMA diagram</td><td>Comparison matrix (systems × dimensions), gap statement</td></tr>
+  </table>
+
+  <h2><span class="section-num">02</span>Different failure modes</h2>
+  <div class="compare-grid">
+    <div class="compare-col cant">
+      <h4>Evidence-synthesis review fails when...</h4>
+      <ul>
+        <li>The search missed a relevant subset of studies (incomplete coverage)</li>
+        <li>Study quality wasn't accounted for (garbage in, garbage out)</li>
+        <li>Publication bias skewed the pooled estimate</li>
+      </ul>
+    </div>
+    <div class="compare-col cant">
+      <h4>Positioning review fails when...</h4>
+      <ul>
+        <li>It misrepresents what a prior system actually does (strawmanning)</li>
+        <li>It misses a directly overlapping prior system entirely — the single fastest way to get rejected by a USENIX-style program committee</li>
+        <li>Its comparison table cherry-picks dimensions that flatter the new contribution</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2><span class="section-num">03</span>Why this matters mechanically</h2>
+  <p>The two genres don't just look different — they need different tooling.
+  A systematic review's engine (Modules 1–20) is built to maximize and
+  audit <em>coverage</em>: every record's fate is logged, nothing quietly
+  disappears. A positioning review needs a tool built to maximize
+  <em>accurate comparison</em>: correctly and verifiably characterizing
+  each competitor along the dimensions that matter for the argument. Modules
+  27–28 reuse the search/aggregation machinery from Track 1 but replace
+  PRISMA-style screening and synthesis with a comparison matrix and a
+  gap-statement generator, precisely because the goal changed.</p>
+
+  <div class="callout">
+    <strong>Used by:</strong> <a href="../modules/track2/27_related_work_comparison_matrix/tutorial.html">Module 27 — Related-Work Comparison Matrix Builder</a>,
+    <a href="../modules/track2/28_positioning_gap_statement_generator/tutorial.html">Module 28 — Positioning & Gap-Statement Generator</a>
+  </div>
+</div>
+</body>
+</html>

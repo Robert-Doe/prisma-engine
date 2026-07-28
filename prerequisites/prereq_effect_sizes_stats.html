@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Prerequisite: Effect Sizes & Statistical Primitives</title>
+<link rel="stylesheet" href="../assets/style.css">
+<style>:root{--accent:#9b8cf2;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Prerequisite 6 of 9</span>Effect Sizes & Statistical Primitives</h1>
+
+  <div class="analogy-box">
+    <span class="label">The Big Analogy</span>
+    Ten studies report temperature in a mix of Celsius, Fahrenheit, and
+    Kelvin. You can't average them until you convert everything into one
+    unit. An effect size is that common unit for research findings — it
+    converts "63% improved in the treatment group vs. 41% in control" and
+    "mean score 7.2 vs 5.9" into numbers that can sit in the same column of
+    a table and be combined.
+  </div>
+
+  <h2><span class="section-num">01</span>The main effect-size types</h2>
+  <table>
+    <tr><th>Measure</th><th>Used when outcome is...</th><th>"No effect" value</th></tr>
+    <tr><td>Odds Ratio (OR)</td><td>binary, from a case-control study</td><td>1.0</td></tr>
+    <tr><td>Risk Ratio / Relative Risk (RR)</td><td>binary, from a cohort/RCT with known baseline risk</td><td>1.0</td></tr>
+    <tr><td>Mean Difference (MD)</td><td>continuous, same measurement scale across studies</td><td>0</td></tr>
+    <tr><td>Standardized Mean Difference (SMD, e.g. Cohen's d)</td><td>continuous, but studies used different scales/instruments</td><td>0</td></tr>
+  </table>
+  <p>Notice the pattern: <strong>ratio</strong> measures (OR, RR) center on
+  1 — "no difference" means the ratio of the two groups is 1:1. <strong>Difference</strong>
+  measures (MD, SMD) center on 0 — "no difference" means literally zero gap.
+  Which family a study reports depends on its design
+  (<a href="prereq_study_design_taxonomy.html">Prerequisite 4</a>).</p>
+
+  <h2><span class="section-num">02</span>Confidence intervals</h2>
+  <p>An effect size alone is a point estimate — a best guess from a limited
+  sample. A 95% confidence interval expresses the range the true effect
+  plausibly falls in, given the sample size and variability observed.
+  Wider interval = less certain (usually a smaller study); narrower = more
+  certain (usually a larger one).</p>
+
+  <div class="tip-box">
+    <strong>The one thing to memorize:</strong> if a ratio measure's
+    confidence interval spans across 1 (e.g. OR = 1.3, 95% CI [0.9, 1.8]),
+    or a difference measure's interval spans across 0, the result is not
+    statistically significant at that threshold — the data can't rule out
+    "no effect at all."
+  </div>
+
+  <h2><span class="section-num">03</span>Why this matters mechanically</h2>
+  <p>Every study you include has its own effect size and confidence
+  interval computed independently. Pooling them into one combined estimate
+  — the actual arithmetic of a meta-analysis — is only valid once they're
+  all expressed in the same unit. Get the wrong effect-size formula for a
+  study's design and every downstream number, including the pooled
+  estimate and the forest plot, is silently wrong.</p>
+
+  <div class="callout">
+    <strong>Used by:</strong> <a href="../modules/track1/16_effect_size_calculator/tutorial.html">Module 16 — Effect Size Calculator</a>,
+    <a href="../modules/track1/17_meta_analysis_engine/tutorial.html">Module 17 — Meta-Analysis Engine</a>,
+    <a href="../modules/track1/18_forest_plot_renderer/tutorial.html">Module 18 — Forest Plot Renderer</a>,
+    <a href="../modules/track1/19_publication_bias_detector/tutorial.html">Module 19 — Publication Bias Detector</a>
+  </div>
+</div>
+</body>
+</html>

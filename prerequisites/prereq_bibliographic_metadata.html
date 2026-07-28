@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Prerequisite: Bibliographic Metadata & Identifiers</title>
+<link rel="stylesheet" href="../assets/style.css">
+<style>:root{--accent:#9b8cf2;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Prerequisite 3 of 9</span>Bibliographic Metadata & Identifiers</h1>
+
+  <div class="analogy-box">
+    <span class="label">The Big Analogy</span>
+    A URL is a street address that assumes the building never moves —
+    <code>example.com/paper</code> breaks the day the site is redesigned. A
+    <strong>DOI</strong> is more like a postal forwarding service: no matter
+    how many times the publisher moves the actual file, <code>doi.org/10.x/y</code>
+    always resolves to wherever it currently lives. That permanence is why
+    every bibliographic system is built around DOIs as the primary key, not URLs.
+  </div>
+
+  <h2><span class="section-num">01</span>What's actually in a bibliographic record</h2>
+  <p>Regardless of source, a citation record is a bundle of fields: title,
+  author list, publication year, venue (journal/conference name), abstract,
+  and one or more identifiers. Different systems expose different subsets
+  and spell the field names differently — which is exactly the problem
+  normalization solves.</p>
+
+  <h2><span class="section-num">02</span>DOI — Digital Object Identifier</h2>
+  <p>A permanent, globally unique string assigned by a registration agency
+  (e.g. Crossref) at publication time. Format: <code>10.&lt;registrant&gt;/&lt;suffix&gt;</code>,
+  e.g. <code>10.1145/3243734.3243804</code>. Resolvable at
+  <code>https://doi.org/10.1145/3243734.3243804</code>. Because it's
+  assigned once and never reassigned, it's the closest thing academic
+  publishing has to a stable primary key — which is why deduplication
+  (<a href="../modules/track1/06_deduplication_engine/tutorial.html">Module 6</a>)
+  treats a DOI match as decisive.</p>
+
+  <h2><span class="section-num">03</span>RIS format</h2>
+  <p>A plain-text, tag-based export format (used by EndNote, Zotero, and
+  most databases). Each line is a two-letter tag plus a value:</p>
+  <pre><code>TY  - JOUR
+AU  - Smith, Jane
+TI  - Remote Work and Productivity
+PY  - 2023
+JO  - Journal of Applied Psychology
+DO  - 10.1037/xyz
+ER  -</code></pre>
+
+  <h2><span class="section-num">04</span>BibTeX format</h2>
+  <p>A LaTeX-oriented format, keyed by a citation key you choose:</p>
+  <pre><code>@article{smith2023remote,
+  title   = {Remote Work and Productivity},
+  author  = {Smith, Jane},
+  year    = {2023},
+  journal = {Journal of Applied Psychology},
+  doi     = {10.1037/xyz}
+}</code></pre>
+
+  <h2><span class="section-num">05</span>Why this matters mechanically</h2>
+  <p>RIS, BibTeX, and every academic API's JSON response name and structure
+  the same underlying facts differently — RIS calls the title
+  <code>TI</code>, BibTeX calls it <code>title</code>, Crossref's API calls
+  it <code>title</code> as a list. A pipeline that has to handle multiple
+  sources needs exactly one canonical internal shape that all of these get
+  converted into on the way in.</p>
+
+  <div class="callout">
+    <strong>Used by:</strong> <a href="../modules/track1/03_bibliographic_record_model/tutorial.html">Module 3 — Bibliographic Record Model</a>,
+    and every later module that touches a <code>Record</code>
+  </div>
+</div>
+</body>
+</html>

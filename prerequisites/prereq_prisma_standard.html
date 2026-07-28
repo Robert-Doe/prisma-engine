@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Prerequisite: The PRISMA Reporting Standard</title>
+<link rel="stylesheet" href="../assets/style.css">
+<style>:root{--accent:#9b8cf2;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Prerequisite 7 of 9</span>The PRISMA Reporting Standard</h1>
+
+  <div class="analogy-box">
+    <span class="label">The Big Analogy</span>
+    PRISMA is a receipt drawer. Keep every receipt from a shopping trip and
+    anyone — an auditor, your future self — can reconstruct exactly what you
+    bought, what you almost bought and put back, and why. Without the
+    receipts, all anyone has is your word that the total is right.
+  </div>
+
+  <h2><span class="section-num">01</span>What PRISMA is</h2>
+  <p><strong>PRISMA</strong> (Preferred Reporting Items for Systematic
+  reviews and Meta-Analyses) is a reporting standard: a checklist of what a
+  systematic review must document, plus a required flow diagram. It doesn't
+  tell you how to do a review — it tells you what you must disclose about
+  how you did it, so someone else can judge (and in principle reproduce) it.</p>
+
+  <h2><span class="section-num">02</span>Why it exists</h2>
+  <p>It grew out of a documented problem: reviews published in the 1990s
+  varied wildly in how thoroughly they described their search and screening
+  process, making it impossible to tell a rigorous synthesis from a
+  cherry-picked one just by reading the paper. An earlier standard,
+  QUOROM (2000), covered only trials; PRISMA (2009, revised 2020) broadened
+  and formalized it into the standard most journals now require.</p>
+
+  <h2><span class="section-num">03</span>The flow diagram stages</h2>
+  <p>The part of PRISMA every module in this course actually implements is
+  the flow diagram — a running count of records at each stage:</p>
+  <ol>
+    <li><strong>Identification</strong> — total records found across all sources, before deduplication</li>
+    <li><strong>Deduplication</strong> — records removed as duplicates</li>
+    <li><strong>Screening</strong> — records excluded at title/abstract stage, with reasons</li>
+    <li><strong>Eligibility</strong> — records excluded at full-text stage, with reasons</li>
+    <li><strong>Included</strong> — what's left, going into synthesis</li>
+  </ol>
+
+  <div class="tip-box">
+    <strong>The core discipline PRISMA enforces:</strong> every record that
+    doesn't make it to "included" must have a stated reason at a stated
+    stage. "We looked at 400 papers and picked the 12 good ones" is not
+    PRISMA-compliant reporting — it's a black box.
+  </div>
+
+  <h2><span class="section-num">04</span>Why this matters mechanically</h2>
+  <p>PRISMA compliance isn't a document you write at the end — it's a
+  property of how your pipeline tracks state throughout. Every stage that
+  removes records (dedup, screening, eligibility) has to log a reason
+  alongside the removal, in real time, or the flow diagram at the end is
+  reconstructed from memory instead of from an actual audit trail.</p>
+
+  <div class="callout">
+    <strong>Used by:</strong> <a href="../modules/track1/07_prisma_flow_tracker/tutorial.html">Module 7 — PRISMA Flow Tracker</a>,
+    <a href="../modules/track1/12_prisma_diagram_generator/tutorial.html">Module 12 — PRISMA Diagram Generator</a>,
+    <a href="../modules/track1/20_review_report_compiler/tutorial.html">Module 20 — Review Report Compiler</a>
+  </div>
+</div>
+</body>
+</html>

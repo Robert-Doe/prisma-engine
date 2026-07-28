@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Prerequisite: Boolean Search & Controlled Vocabulary</title>
+<link rel="stylesheet" href="../assets/style.css">
+<style>:root{--accent:#9b8cf2;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Prerequisite 2 of 9</span>Boolean Search & Controlled Vocabulary</h1>
+
+  <div class="analogy-box">
+    <span class="label">The Big Analogy</span>
+    Think of a database as a warehouse and your search as a set of nested
+    sieves. <code>AND</code> stacks two sieves on top of each other — only
+    what falls through both lands in your bin (narrower). <code>OR</code>
+    puts two sieves side by side over the same bin — anything falling
+    through either one counts (wider). <code>NOT</code> is a trapdoor under
+    one sieve that dumps its contents in the trash before they ever reach
+    the bin.
+  </div>
+
+  <h2><span class="section-num">01</span>The operators</h2>
+  <ul>
+    <li><code>AND</code> — both terms must be present (narrows results)</li>
+    <li><code>OR</code> — either term is enough (widens results)</li>
+    <li><code>NOT</code> — exclude records containing this term (narrows, but riskily — see warning)</li>
+    <li><code>"..."</code> phrase search — match the exact phrase, not the words scattered anywhere in the record</li>
+    <li><code>*</code> truncation — <code>employ*</code> matches employee, employment, employer, employed</li>
+    <li><code>(...)</code> parentheses — control precedence, exactly like arithmetic</li>
+  </ul>
+
+  <div class="warning-box">
+    <strong>Why NOT is dangerous:</strong> <code>remote work NOT office</code>
+    doesn't just exclude studies about offices — it excludes any study that
+    merely <em>mentions</em> an office for context, even one whose main
+    finding is exactly what you wanted. Reviewers who use NOT carelessly
+    silently delete relevant studies. Most search protocols avoid it
+    entirely.
+  </div>
+
+  <h2><span class="section-num">02</span>Controlled vocabulary vs. free-text</h2>
+  <p>A free-text search matches whatever words the authors happened to type.
+  If one author wrote "remote work" and another wrote "telecommuting" and a
+  third wrote "work from home," a free-text search for just one of those
+  terms misses the other two.</p>
+
+  <p>A <strong>controlled vocabulary</strong> is a database's own fixed,
+  hand-curated thesaurus — every record gets manually tagged with standard
+  terms from that list, regardless of what words the author actually used.
+  PubMed's is called <strong>MeSH</strong> (Medical Subject Headings). Search
+  <code>MeSH: Teleworking</code> and you catch every record tagged that way,
+  even the one that only ever said "distributed workforce" in its abstract.</p>
+
+  <table>
+    <tr><th></th><th>Free-text</th><th>Controlled vocabulary</th></tr>
+    <tr><td>Catches</td><td>Exact words/synonyms you typed</td><td>Everything tagged with that concept, regardless of wording</td></tr>
+    <tr><td>Misses</td><td>Any synonym you didn't think to include</td><td>Anything not yet indexed (very new terms, or databases without a thesaurus)</td></tr>
+    <tr><td>Best practice</td><td colspan="2">Combine both with OR for the same concept — this is what "sensitive" search strategies do</td></tr>
+  </table>
+
+  <h2><span class="section-num">03</span>Putting it together</h2>
+  <pre><code>("remote work"[tiab] OR telecommut*[tiab] OR "work from home"[tiab] OR "Teleworking"[MeSH])
+AND
+(productivity[tiab] OR "job performance"[tiab] OR "Work Performance"[MeSH])</code></pre>
+  <p>Each PICO/PEO/SPIDER slot (see <a href="prereq_pico_frameworks.html">Prerequisite 1</a>)
+  becomes one parenthesized OR-group of synonyms + controlled-vocabulary
+  terms; the groups are joined with AND.</p>
+
+  <div class="callout">
+    <strong>Used by:</strong> <a href="../modules/track1/02_boolean_query_builder/tutorial.html">Module 2 — Boolean Query Builder</a>
+  </div>
+</div>
+</body>
+</html>

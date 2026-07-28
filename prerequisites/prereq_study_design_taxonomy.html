@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Prerequisite: Study Design Taxonomy & Evidence Hierarchy</title>
+<link rel="stylesheet" href="../assets/style.css">
+<style>:root{--accent:#9b8cf2;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Prerequisite 4 of 9</span>Study Design Taxonomy & Evidence Hierarchy</h1>
+
+  <div class="analogy-box">
+    <span class="label">The Big Analogy</span>
+    Think of study designs like witnesses in a courtroom. An eyewitness who
+    watched the whole thing happen under controlled conditions (a randomized
+    trial) is more reliable than someone reconstructing events from memory
+    months later (a retrospective study) — not because the second witness is
+    lying, but because their account is more exposed to distortion. The
+    "evidence hierarchy" ranks designs by how exposed to distortion
+    (confounding, bias) their conclusions are.
+  </div>
+
+  <h2><span class="section-num">01</span>The designs, roughly strongest to weakest for causal claims</h2>
+  <table>
+    <tr><th>Design</th><th>What it does</th></tr>
+    <tr><td>Randomized Controlled Trial (RCT)</td><td>Randomly assigns subjects to intervention vs. control — randomization is what lets you attribute the difference to the intervention rather than to some pre-existing difference between groups</td></tr>
+    <tr><td>Cohort study</td><td>Follows a group over time, comparing those exposed to something vs. those not — no randomization, so exposed/unexposed groups may differ in other ways (confounding)</td></tr>
+    <tr><td>Case-control study</td><td>Starts from the outcome (people who have a condition) and looks backward for exposure differences vs. matched controls — efficient for rare outcomes, more vulnerable to recall bias</td></tr>
+    <tr><td>Cross-sectional study</td><td>A single snapshot in time — can show association, cannot establish which came first (exposure or outcome)</td></tr>
+    <tr><td>Case series / case report</td><td>Describes what happened to one patient or a small uncontrolled group — no comparison group at all</td></tr>
+    <tr><td>Qualitative study</td><td>Not on this hierarchy at all — it answers a different kind of question (experience/meaning, not causal effect size) and is evaluated on its own criteria</td></tr>
+  </table>
+
+  <div class="warning-box">
+    <strong>The pyramid is a simplification.</strong> Frameworks like GRADE
+    treat "level of evidence" as a starting point that gets upgraded or
+    downgraded per study (a very large, precise cohort study can outrank a
+    small, poorly-run RCT). Don't treat design type alone as a final verdict
+    on quality — that's exactly what
+    <a href="../modules/track1/11_risk_of_bias_scorer/tutorial.html">Module 11's</a>
+    checklist-based scoring is for.
+  </div>
+
+  <h2><span class="section-num">02</span>Why this matters mechanically</h2>
+  <p>Study design determines what raw numbers a paper even reports (a
+  case-control study reports odds, a cohort study can report risk), which
+  determines which effect-size formula applies
+  (<a href="prereq_effect_sizes_stats.html">Prerequisite 6</a>), and it's
+  one of the first things a risk-of-bias checklist branches on — an RCT and
+  a cohort study get evaluated against different questions.</p>
+
+  <div class="callout">
+    <strong>Used by:</strong> <a href="../modules/track1/11_risk_of_bias_scorer/tutorial.html">Module 11 — Risk-of-Bias / Quality Appraisal Scorer</a>,
+    <a href="../modules/track1/16_effect_size_calculator/tutorial.html">Module 16 — Effect Size Calculator</a>
+  </div>
+</div>
+</body>
+</html>
