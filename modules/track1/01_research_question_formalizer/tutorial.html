@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Module 1: Research Question Formalizer</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+<style>:root{--accent:#e8a33d;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Module 1 — Track 1: Core Engine</span>Research Question Formalizer</h1>
+
+  <div class="prereq-tags">
+    <span class="status-badge">Prerequisites:</span>
+    <a href="../../../prerequisites/prereq_pico_frameworks.html">PICO / PEO / SPIDER Frameworks</a>
+  </div>
+
+  <h2><span class="section-num">00</span>Before You Start</h2>
+  <p>You need the prerequisite above — everything in this module assumes
+  you already know what a PICO/PEO/SPIDER slot is and why the framework
+  choice matters. If that's new, read it first; it's five minutes.</p>
+
+  <h2><span class="section-num">01</span>The Big Analogy</h2>
+  <div class="analogy-box">
+    <span class="label">The intake clerk</span>
+    Walk into a busy clinic and describe your problem in your own words —
+    a run-on story with no structure. A good intake clerk doesn't diagnose
+    you. They listen for a few telling phrases ("it hurts more when I
+    move," "I've felt this way for months") to guess which intake form fits
+    — general medicine, a specialist referral, mental health — hand you
+    that specific form, and then refuse to send you further into the
+    building until every required box on it is filled in. They might even
+    pre-fill one box themselves if your story made it obvious ("you said
+    'compared to how I felt in my last job' — is that the comparison
+    box?"), but they never invent an answer for a box you haven't
+    addressed.
+    <br><br>
+    <code>formalizer.py</code> is that clerk. <code>suggest_framework_verbose()</code>
+    guesses which form (PICO/PEO/SPIDER) fits your question.
+    <code>FRAMEWORK_SLOTS</code> is the fixed set of boxes on each form.
+    <code>validate()</code> is the clerk refusing to let an incomplete form
+    through.
+  </div>
+
+  <h2><span class="section-num">02</span>What Happens, Step by Step</h2>
+  <ol class="checklist">
+    <li>You give <code>formalize()</code> a raw question string, e.g. <code>"Does remote work affect employee productivity compared to in-office work?"</code></li>
+    <li>If you didn't specify a framework, <code>suggest_framework_verbose()</code> scans the text for SPIDER markers first, then PEO markers, and falls back to PICO if neither hits — returning both the guess <em>and</em> the reason, never a silent decision</li>
+    <li>If the framework is PICO and you haven't already supplied a <code>comparison</code> slot, <code>suggest_comparison()</code> tries to split the sentence on "compared to" / "versus" / "vs." to extract one for you</li>
+    <li>Your explicitly-given slots and any auto-suggested ones are merged into a <code>ResearchQuestion</code> object</li>
+    <li><code>validate()</code> checks every slot that framework requires is present and non-blank — if anything's missing, it raises <code>MissingSlotsError</code> naming exactly which fields, and construction stops there</li>
+    <li>If validation passes, you get back a fully-formed, structured <code>ResearchQuestion</code> you can print, serialize to a dict, or pass to Module 2</li>
+  </ol>
+
+  <h2><span class="section-num">03</span>A Map of the State</h2>
+  <div class="diagram-box">
+    <pre style="border:none; background:none; padding:0;"><code>"Does remote work affect employee
+ productivity compared to in-office
+ work?"
+        │
+        ▼
+ suggest_framework_verbose()  ──────►  (Framework.PICO, "no SPIDER/PEO
+        │                               marker found — defaulting to PICO")
+        ▼
+ suggest_comparison()  ─────────────►  "in-office work"
+        │
+        ▼
+ merge with caller-supplied slots:
+   population   = "knowledge workers"      (given by caller)
+   intervention = "remote work arrangements" (given by caller)
+   comparison   = "in-office work"          (auto-suggested)
+   outcome      = "measured or self-reported productivity" (given by caller)
+        │
+        ▼
+ ResearchQuestion.validate()
+        │
+   ┌────┴────┐
+   ▼         ▼
+ all slots   any slot
+ present     missing
+   │           │
+   ▼           ▼
+ return     raise MissingSlotsError(
+ object      framework, missing_list)</code></pre>
+  </div>
+
+  <h2><span class="section-num">04</span>The Code, Explained</h2>
+  <p>The framework-suggestion heuristic, in full — deliberately simple and
+  auditable rather than a trained model:</p>
+  <pre><code>def suggest_framework_verbose(question_text: str) -> tuple[Framework, str]:
+    spider_hit = _first_match(question_text, _SPIDER_MARKERS)
+    if spider_hit:
+        return Framework.SPIDER, f'matched SPIDER marker "{spider_hit}"'
+
+    peo_hit = _first_match(question_text, _PEO_MARKERS)
+    if peo_hit:
+        return Framework.PEO, f'matched PEO marker "{peo_hit}"'
+
+    return Framework.PICO, "no SPIDER/PEO marker found — defaulting to PICO"</code></pre>
+  <p>Every branch returns <em>why</em>, not just <em>what</em> — see
+  <a href="DECISIONS.md">DECISIONS.md</a> for why that ordering (SPIDER →
+  PEO → PICO-default) was chosen deliberately as the safer fallback.</p>
+
+  <p>Validation, which is where the "machine-checkable" promise actually
+  gets enforced:</p>
+  <pre><code>def validate(self) -> None:
+    required = FRAMEWORK_SLOTS[self.framework]
+    missing = [s for s in required if not self.slots.get(s, "").strip()]
+    if missing:
+        raise MissingSlotsError(self.framework, missing)</code></pre>
+  <p>Notice this doesn't just return <code>True</code>/<code>False</code> —
+  it names the exact missing fields in the exception, because "invalid" on
+  its own isn't actionable; "missing: ['comparison', 'outcome']" is.</p>
+
+  <h2><span class="section-num">05</span>Limits / What You Cannot Do Yet</h2>
+  <div class="compare-grid">
+    <div class="compare-col cant">
+      <h4>Can't do yet</h4>
+      <ul>
+        <li>Turn a structured question into an actual boolean search string</li>
+        <li>Know whether the framework it suggested is genuinely the best fit — it's a starting suggestion, not a verdict</li>
+        <li>Handle any language other than English's common academic phrasings</li>
+        <li>Search anything — this module produces no network calls at all</li>
+      </ul>
+    </div>
+    <div class="compare-col can">
+      <h4>Can do</h4>
+      <ul>
+        <li>Turn free text into a structured, framework-correct object</li>
+        <li>Catch and name incompleteness before it silently propagates downstream</li>
+        <li>Show you exactly why it suggested what it suggested</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2><span class="section-num">06</span>Run It</h2>
+  <p>From this module's directory:</p>
+  <pre><code>python formalizer.py</code></pre>
+  <p>Expected output (captured from an actual run):</p>
+  <pre><code>All self-checks passed.
+
+======================================================================
+EXAMPLE 1 — PICO question, comparison auto-suggested
+======================================================================
+Question: Does remote work affect employee productivity compared to in-office work?
+Suggested framework: PICO  (no SPIDER/PEO marker found — defaulting to PICO)
+
+[PICO] Does remote work affect employee productivity compared to in-office work?
+              population: knowledge workers
+            intervention: remote work arrangements
+              comparison: in-office work
+                 outcome: measured or self-reported productivity
+
+======================================================================
+EXAMPLE 2 — PEO question
+======================================================================
+Question: What is the risk of burnout associated with excessive screen time among remote workers?
+Suggested framework: PEO  (matched PEO marker "associated with")
+
+[PEO] What is the risk of burnout associated with excessive screen time among remote workers?
+              population: remote workers
+                exposure: excessive screen time
+                 outcome: burnout
+
+======================================================================
+EXAMPLE 3 — SPIDER question
+======================================================================
+Question: How do new remote workers experience isolation during their first year?
+Suggested framework: SPIDER  (matched SPIDER marker "experience")
+
+[SPIDER] How do new remote workers experience isolation during their first year?
+                  sample: new remote workers, first year of employment
+  phenomenon_of_interest: isolation
+                  design: semi-structured interviews
+              evaluation: thematic description of isolation experiences
+           research_type: qualitative
+
+======================================================================
+EXAMPLE 4 — validation catching an incomplete question
+======================================================================
+Question: Does remote work affect employee productivity?
+Slots given: {"population": "knowledge workers"}  (outcome missing on purpose)
+Raised MissingSlotsError as expected: PICO requires ['population', 'intervention',
+'comparison', 'outcome']; missing: ['intervention', 'comparison', 'outcome']</code></pre>
+
+  <div class="warning-box">
+    <strong>Getting a blank or broken result?</strong> This module needs
+    Python 3.10+ (it uses the <code>str | None</code> union-type syntax).
+    Run <code>python --version</code> first — if you're below 3.10, either
+    upgrade or replace those annotations with <code>Optional[str]</code>
+    from <code>typing</code>. There are no other dependencies to install.
+  </div>
+
+  <h2><span class="section-num">07</span>Brain Exercise</h2>
+  <div class="brain-exercise">
+    <details>
+      <summary>Why does <code>formalize()</code> refuse to auto-suggest a value for any slot other than <code>comparison</code> — for example, why doesn't it try to guess <code>population</code> or <code>outcome</code> from the sentence too?</summary>
+      <div class="answer">
+        Comparison has a reliable textual signal in English academic
+        writing — the word "compared to"/"versus" almost always precedes
+        exactly the phrase you want. Population and outcome don't have an
+        equally reliable syntactic marker; guessing them from raw text
+        without one would mean silently inserting a guess that <em>looks</em>
+        like real data but might be wrong, which is far more dangerous than
+        leaving the slot blank and letting <code>validate()</code> catch it.
+        A tool that fails loudly on a missing slot is safer than one that
+        fails quietly with a wrong one.
+      </div>
+    </details>
+  </div>
+
+  <h2><span class="section-num">08</span>There Are No Dumb Questions</h2>
+  <div class="qa-entry">
+    <div class="q">Isn't the framework-suggestion heuristic just... a list of if-statements? Is that really "proving" anything?</div>
+    <div class="a">Yes, mechanically it is a short, ordered list of keyword checks — and that's exactly the point. The module's causal claim isn't "this AI understands your question," it's "a fuzzy question can be decomposed into structured, machine-checkable fields." A transparent, auditable heuristic proves that claim more honestly than a black-box model would, because you can see and verify exactly why each decision was made.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">What happens if a question matches both a SPIDER marker and a PEO marker?</div>
+    <div class="a">SPIDER wins — <code>suggest_framework_verbose()</code> checks SPIDER markers first and returns immediately on a hit, never reaching the PEO check. This is a real, inspectable consequence of the ordering decision explained in <a href="DECISIONS.md">DECISIONS.md</a>.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">Why is <code>MissingSlotsError</code> a subclass of <code>ValueError</code> instead of its own standalone exception type?</div>
+    <div class="a">So it plays nicely with any code that already catches <code>ValueError</code> for "the input I was given was invalid" — a very common Python convention. See <a href="DECISIONS.md">DECISIONS.md</a> for the full reasoning.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">Can I add a new framework beyond PICO/PEO/SPIDER?</div>
+    <div class="a">Yes — add an entry to <code>FRAMEWORK_SLOTS</code> with its required slot names, and update <code>suggest_framework_verbose()</code> if you want automatic suggestion for it. <code>validate()</code> and <code>render_summary()</code> both read from <code>FRAMEWORK_SLOTS</code> generically, so neither needs to change.</div>
+  </div>
+
+  <h2><span class="section-num">09</span>What's Next</h2>
+  <p>A structured <code>ResearchQuestion</code> is not yet anything a
+  database can search — it's still just organized English. Module 2 takes
+  each filled slot and mechanically compiles it into an actual boolean
+  search string, using the AND/OR/NOT logic from
+  <a href="../../../prerequisites/prereq_boolean_search.html">Prerequisite 2</a>.</p>
+
+  <div class="module-footer-nav">
+    <div class="prev"><a href="../../track0_orientation/00_literature_review_landscape/tutorial.html">← Module 0: The Literature Review Landscape</a></div>
+    <div class="next"><a href="../02_boolean_query_builder/tutorial.html">Module 2: Boolean Query Builder →</a></div>
+  </div>
+</div>
+</body>
+</html>
