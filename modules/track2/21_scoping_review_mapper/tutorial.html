@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Module 21: Scoping Review Mapper</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+<style>:root{--accent:#2f9e6f;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Module 21 — Track 2: Applied Layer</span>Scoping Review Mapper</h1>
+
+  <div class="prereq-tags">
+    <span class="status-badge">Depends on Track 1:</span>
+    <a href="../../track1/02_boolean_query_builder/tutorial.html">Module 2</a>
+    <a href="../../track1/08_screening_engine/tutorial.html">Module 8</a>
+    <a href="../../track1/10_data_extraction_engine/tutorial.html">Module 10</a>
+  </div>
+
+  <h2><span class="section-num">00</span>Before You Start</h2>
+  <p>Read <a href="../../track0_orientation/00_literature_review_landscape/concept_scoping_review.html">Module 0's Scoping Review concept page</a>
+  and finish Modules 2, 8, and 10 — this module reuses real code from all
+  three.</p>
+
+  <h2><span class="section-num">01</span>The Big Analogy</h2>
+  <div class="analogy-box">
+    <span class="label">The neighborhood scout, not the building inspector</span>
+    Module 0 described a scoping review as a scout on a motorbike — this
+    module is where that scout actually gets to work. A neighborhood scout
+    doesn't go inside every building and check its wiring, plumbing, and
+    foundation for safety — that's a building inspector's job, one
+    building at a time, in depth. The scout's job is riding every street
+    and coming back with a map: how many houses, how many shops, how many
+    apartment blocks, roughly where they cluster.
+    <br><br>
+    This module never calls Module 11's risk-of-bias scorer — not because
+    it forgot to, but because a scout doesn't inspect foundations. Its
+    actual output, <code>summarize_breadth()</code>, is a map of what
+    exists, not a verdict on whether any single building is safe.
+  </div>
+
+  <h2><span class="section-num">02</span>What Happens, Step by Step</h2>
+  <ol class="checklist">
+    <li>A <code>PCCQuestion</code> (Population, Concept, Context — the real JBI framework for scoping reviews) replaces Module 1's PICO, validated the same way but as its own parallel class</li>
+    <li><code>build_widened_query()</code> reuses Module 2's <code>build_or_group()</code> directly, but includes every slot instead of Module 2's narrowed default — breadth, not sensitivity-within-volume</li>
+    <li>Screening reuses Module 8's <code>screen()</code>/<code>ScreeningRule</code> unchanged, with only a relevance rule — no design or date filtering</li>
+    <li>A charting form (<code>CHARTING_SCHEMA</code>) reuses Module 10's exact <code>ExtractionField</code>/<code>ExtractionSchema</code> classes, with fields describing study characteristics instead of quantitative findings</li>
+    <li><code>summarize_breadth()</code> — new code — tallies charted records by category into a breadth map, the review's actual deliverable</li>
+  </ol>
+
+  <h2><span class="section-num">03</span>A Map of the State</h2>
+  <div class="diagram-box">
+    <pre style="border:none; background:none; padding:0;"><code>PCCQuestion(population="knowledge workers", concept="remote/hybrid work",
+            context="post-pandemic organizational settings")
+        │
+        ▼  build_widened_query() — reuses Module 2's build_or_group()
+("knowledge workers" OR "office workers" OR ...) AND
+("remote work" OR telecommut* OR "hybrid work" OR ...) AND
+(organization* OR workplace OR post-pandemic)
+        │
+        ▼  screen() — reuses Module 8, relevance rule only
+3 candidate records -> 2 kept (1 excluded: no remote-work keyword found)
+        │
+        ▼  extract() + build_evidence_table() — reuse Modules 10/14
+        │     NOTE: Module 11 (risk-of-bias) is never called — see DECISIONS.md
+        ▼
+summarize_breadth(table)
+  population_type:    {"knowledge workers": 2}
+  study_design:        {"survey": 1, "qualitative": 1}
+  geographic_region:   {"North America": 1, "Europe": 1}
+  topic_focus:         {"technology adoption": 1, "wellbeing": 1}</code></pre>
+  </div>
+
+  <h2><span class="section-num">04</span>The Code, Explained</h2>
+  <pre><code>def build_widened_query(terms: dict[str, SlotTerms]) -> str:
+    # Unlike Module 2's DEFAULT_SEARCH_SLOTS, which deliberately excludes
+    # some slots — a scoping review wants maximum breadth instead.
+    groups = [build_or_group(slot, slot_terms) for slot, slot_terms in terms.items()]
+    return " AND ".join(groups)</code></pre>
+  <p>Compare this to Module 2's <code>build_query()</code>, which filters
+  <code>terms</code> down to <code>DEFAULT_SEARCH_SLOTS</code> before
+  building groups. This function skips that filter entirely — same
+  building block, opposite default.</p>
+
+  <h2><span class="section-num">05</span>Limits / What You Cannot Do Yet</h2>
+  <div class="compare-grid">
+    <div class="compare-col cant">
+      <h4>Can't do yet</h4>
+      <ul>
+        <li>Judge whether any charted study is trustworthy — that's explicitly out of scope for this review type</li>
+        <li>Pool anything numerically — a breadth map is categorical, not a quantitative synthesis</li>
+        <li>Reuse Module 1's <code>Framework</code> enum directly for PCC — Python enums can't be extended after the fact</li>
+      </ul>
+    </div>
+    <div class="compare-col can">
+      <h4>Can do</h4>
+      <ul>
+        <li>Answer "what does this field look like" with a real, structured map instead of a narrative guess</li>
+        <li>Reuse Track 1's real query-building, screening, and extraction machinery for a genuinely different purpose</li>
+        <li>Prove Track 1's building blocks compose into more than just the one pipeline they were originally built for</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2><span class="section-num">06</span>Run It</h2>
+  <pre><code>python scoping_mapper.py</code></pre>
+  <p>Expected output (deterministic, no network involved):</p>
+  <pre><code>All self-checks passed.
+
+PCC question validated: {'population': 'knowledge workers', 'concept': 'remote and hybrid work practices', 'context': 'post-pandemic organizational settings'}
+
+Widened scoping search (every slot included, unlike Module 2's default narrowing):
+  ("knowledge workers" OR "office workers" OR employees OR professionals) AND ("remote work" OR telecommut* OR "hybrid work" OR "work from home" OR "distributed teams") AND (organization* OR workplace OR post-pandemic)
+
+Relevance screening (no design/date filtering): 2/3 kept
+
+Breadth map (the scoping review's actual output)
+  population_type: {'knowledge workers': 2}
+  study_design: {'survey': 1, 'qualitative': 1}
+  geographic_region: {'North America': 1, 'Europe': 1}
+  topic_focus: {'technology adoption': 1, 'wellbeing': 1}</code></pre>
+
+  <h2><span class="section-num">07</span>Brain Exercise</h2>
+  <div class="brain-exercise">
+    <details>
+      <summary>Module 1's Q&A explicitly said "want to add a new framework? Add an entry to FRAMEWORK_SLOTS." Why didn't this module just do that for PCC?</summary>
+      <div class="answer">
+        Because that answer was true for adding a new entry to a
+        <em>dict</em> (`FRAMEWORK_SLOTS`) — genuinely easy — but PCC also
+        needed a new <em>value</em> in the `Framework` enum itself for the
+        rest of Module 1's code (like `suggest_framework_verbose()`'s
+        return type) to reference it consistently, and Python doesn't
+        support adding members to an `Enum` after its class body has
+        executed. This is a real, discovered gap between "the dict is
+        extensible" and "the whole framework concept is extensible" —
+        which is exactly why this module builds a parallel `PCCQuestion`
+        class instead of forcing a fit that Python's own type system
+        doesn't actually allow.
+      </div>
+    </details>
+  </div>
+
+  <h2><span class="section-num">08</span>There Are No Dumb Questions</h2>
+  <div class="qa-entry">
+    <div class="q">If PCC and PICO are structurally so similar (both are validated slot dictionaries), why not just make one generic "SlottedQuestion" base class both inherit from?</div>
+    <div class="a">That would be a reasonable refactor in a real codebase — but it would mean modifying Module 1, which this course's Track 2 modules deliberately avoid doing, to keep every already-built, already-verified Track 1 module stable for anyone relying on it exactly as documented. Track 2 proves Track 1's pieces are reusable as they are, not that they're infinitely refactorable.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">Why does the charting form require `topic_focus` but make `geographic_region` optional?</div>
+    <div class="a">Because a real charting form's job is answering the review's specific breadth question, and this scoping review's PCC context is about organizational settings and topic areas — geography is useful context, not central to the question, similar to how Module 10's `outcome_measure` field is optional because not every source reliably reports it.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">Could `summarize_breadth()` be reused by other Track 2 modules?</div>
+    <div class="a">Yes, structurally — anything that builds an evidence-table-shaped object with categorical fields could reuse it as-is. Module 22 (Rapid Review Adapter) or a future bibliometric module could import it directly rather than reinventing category tallying.</div>
+  </div>
+
+  <h2><span class="section-num">09</span>What's Next</h2>
+  <p>Module 22 adapts the engine again — this time for a time-boxed rapid
+  review, keeping systematic-review methodology but deliberately, visibly
+  simplifying specific steps under a real time constraint.</p>
+
+  <div class="module-footer-nav">
+    <div class="prev"><a href="../../track1/20_review_report_compiler/tutorial.html">← Module 20: Review Report Compiler</a></div>
+    <div class="next"><a href="../22_rapid_review_adapter/tutorial.html">Module 22: Rapid Review Adapter →</a></div>
+  </div>
+</div>
+</body>
+</html>
