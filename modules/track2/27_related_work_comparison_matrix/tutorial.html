@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Module 27: Related-Work Comparison Matrix Builder</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+<style>:root{--accent:#b0503a;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Module 27 — Track 2: Applied Layer</span>Related-Work Comparison Matrix Builder</h1>
+
+  <div class="prereq-tags">
+    <span class="status-badge">Prerequisites:</span>
+    <a href="../../../prerequisites/prereq_positioning_vs_synthesis.html">Positioning vs. Evidence-Synthesis Review</a>
+    <span class="status-badge">Depends on Track 1:</span>
+    <a href="../../track1/05_multi_source_aggregator/tutorial.html">Module 5</a>
+    <a href="../../track1/06_deduplication_engine/tutorial.html">Module 6</a>
+    <a href="../../track1/13_citation_snowballing_engine/tutorial.html">Module 13</a>
+    <a href="../../track1/14_evidence_table_builder/tutorial.html">Module 14</a>
+  </div>
+
+  <div class="warning-box">Needs internet access — real, live arXiv and Crossref calls.</div>
+
+  <h2><span class="section-num">00</span>Before You Start</h2>
+  <p>Read Prerequisite 8 — this module is the first concrete artifact from
+  the positioning-review genre it describes, as distinct from every
+  PRISMA-style module before it in Track 1.</p>
+
+  <h2><span class="section-num">01</span>The Big Analogy</h2>
+  <div class="analogy-box">
+    <span class="label">The spec-sheet comparison table</span>
+    A tech review site doesn't describe three competing phones in three
+    separate paragraphs — it builds one table: battery life, camera
+    resolution, price, weight, one row per phone, one column per spec.
+    You can read straight down the "battery life" column and immediately
+    see which phone wins that dimension, without re-reading any review.
+    <br><br>
+    That's what a USENIX-style Related Work section's comparison table
+    does with prior systems instead of phones. <code>COMPARISON_SCHEMA</code>
+    is the spec sheet's column list — approach type, which attacks it
+    targets, whether it's ML-based. <code>build_evidence_table()</code>
+    (reused unchanged from Module 14) is what turns seven real, live-fetched
+    papers into that one readable table.
+  </div>
+
+  <h2><span class="section-num">02</span>What Happens, Step by Step</h2>
+  <ol class="checklist">
+    <li>Module 5's <code>fetch_arxiv()</code> runs a real, live search for Spectre/Meltdown-class side-channel papers</li>
+    <li>Module 13's <code>backward_snowball()</code> pulls in real related work from a real, resolved DOI's own reference list</li>
+    <li>Module 6's <code>deduplicate()</code> merges both sources into one unique set of real papers</li>
+    <li><code>extract_dimensions()</code> classifies each paper's approach using only its own real title/abstract text — never an assumed fact about what the paper "probably" does</li>
+    <li>Module 10's <code>extract()</code> and Module 14's <code>build_evidence_table()</code>, reused unchanged, assemble the final comparison matrix</li>
+  </ol>
+
+  <h2><span class="section-num">03</span>A Map of the State</h2>
+  <div class="diagram-box">
+    <pre style="border:none; background:none; padding:0;"><code>fetch_arxiv("spectre/meltdown side-channel")  ──►  5 real papers
+backward_snowball("10.1145/3316781.3317903")  ──►  2 real papers
+        │                                          (SafeSpec's own references)
+        ▼
+merge_sources() + deduplicate()  ──►  7 unique real papers
+        │
+        ▼  extract_dimensions() per paper, from REAL title/abstract text
+"Real time Detection of Spectre and Meltdown Attacks Using Machine
+ Learning" (2020)
+   -> approach_type="detection", targets_spectre=True, ml_based=True
+
+"BranchScope" (2018) — Crossref had NO abstract on file for this one
+   -> approach_type="unspecified"   <- honest, not guessed</code></pre>
+  </div>
+
+  <h2><span class="section-num">04</span>The Code, Explained</h2>
+  <pre><code>def classify_approach(text: str) -> str:
+    lowered = text.lower()
+    if any(k in lowered for k in ("detect", "identification of")):
+        return "detection"
+    if any(k in lowered for k in ("prevent", "mitigat", "defense", "banish", "protect")):
+        return "mitigation"
+    if any(k in lowered for k in ("discover", "automated discovery", "survey")):
+        return "discovery/analysis"
+    return "unspecified"</code></pre>
+  <p>Every branch is grounded in the paper's own words. When there are no
+  words to search — a paper with no abstract on file — the function
+  correctly falls through to <code>"unspecified"</code> rather than
+  guessing.</p>
+
+  <h2><span class="section-num">05</span>Limits / What You Cannot Do Yet</h2>
+  <div class="compare-grid">
+    <div class="compare-col cant">
+      <h4>Can't do yet</h4>
+      <ul>
+        <li>Extract real technical detail (performance overhead percentages, exact hardware tested) — only what a title/abstract's own words support</li>
+        <li>Classify a paper accurately if its abstract is missing (correctly falls back to "unspecified," but that's a real information loss)</li>
+        <li>Generate the actual novelty/gap argument — that's Module 28</li>
+      </ul>
+    </div>
+    <div class="compare-col can">
+      <h4>Can do</h4>
+      <ul>
+        <li>Build a real, USENIX-style comparison matrix from genuinely live, multi-source data</li>
+        <li>Keep every classification traceable and auditable against the paper's own real text</li>
+        <li>Report a real data gap (missing Crossref abstracts) honestly instead of inventing a classification to fill it</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2><span class="section-num">06</span>Run It</h2>
+  <pre><code>python comparison_matrix.py</code></pre>
+  <p>Real output captured 2026-07-28 (your live search results will
+  differ):</p>
+  <pre><code>All self-checks passed (no network required for these).
+
+Real, live arXiv search (Module 5)
+  5 fetched, 50 total available
+
+Backward snowball from a real, published DOI (Module 13)
+  <- 'BranchScope' (2018)
+  <- 'KASLR is Dead: Long Live KASLR' (2017)
+
+After Module 6 dedup: 7 unique real papers
+
+Comparison matrix (dimensions extracted from real title/abstract text)
+| title | year | approach_type | targets_spectre | targets_meltdown | ml_based |
+|---|---|---|---|---|---|
+| Real time Detection of Spectre and Meltdown Attacks Using Machine Learning | 2020 | detection | True | True | True |
+| Store-to-Leak Forwarding: Leaking Data on Meltdown-resistant CPUs (Updated and Extended Version) | 2019 | mitigation | True | True | False |
+| Osiris: Automated Discovery of Microarchitectural Side Channels | 2021 | discovery/analysis | True | True | False |
+| SafeSpec: Banishing the Spectre of a Meltdown with Leakage-Free Speculation | 2018 | mitigation | True | True | False |
+| Pre-cache: A Microarchitectural Solution to prevent Meltdown and Spectre | 2025 | mitigation | True | True | False |
+| BranchScope | 2018 | unspecified | False | False | False |
+| KASLR is Dead: Long Live KASLR | 2017 | unspecified | False | False | False |
+
+Approach-type breakdown: {'detection': 1, 'mitigation': 3, 'discovery/analysis': 1, 'unspecified': 2}</code></pre>
+
+  <h2><span class="section-num">07</span>Brain Exercise</h2>
+  <div class="brain-exercise">
+    <details>
+      <summary>BranchScope and KASLR is Dead both classified as "unspecified" — but they're both real, well-known, on-topic papers with clear technical contributions. Is this module's output misleading?</summary>
+      <div class="answer">
+        Only if read without its own stated limits — which is exactly why
+        this module reports the gap explicitly instead of hiding it. The
+        alternative would be worse: guessing "mitigation" or "detection"
+        for these two papers based on their <em>titles alone</em>
+        sounding vaguely technical, or based on outside knowledge this
+        exercise can't verify against the papers' own text, would be
+        exactly the kind of fabricated-sounding-real claim this course's
+        quality bar prohibits. An honest "we don't have enough text to
+        classify this" is more useful to a real researcher than a
+        confident-sounding guess, because it tells them exactly which
+        papers in the matrix need a closer, manual read.
+      </div>
+    </details>
+  </div>
+
+  <h2><span class="section-num">08</span>There Are No Dumb Questions</h2>
+  <div class="qa-entry">
+    <div class="q">Why does this module use a different seed DOI than Module 13's own original demo?</div>
+    <div class="a">Module 13's seed was a fuzz-testing paper — completely unrelated to Spectre/Meltdown. Snowballing from it here would have pulled in off-topic related work into a supposedly on-topic comparison matrix. Finding a real, on-topic, verified seed DOI (SafeSpec, confirmed live against Crossref before use) keeps the whole matrix coherent.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">Could this module accidentally classify a paper wrong even when an abstract IS available?</div>
+    <div class="a">Yes — a paper about "preventing false positives in Spectre detection tools" would trigger both "detect" and "prevent" markers, and `classify_approach()`'s `if/elif`-style ordering would call it "detection" (checked first) even though "prevention of false positives" isn't really about attack mitigation. Keyword heuristics have real, describable failure modes like this one, the same honesty this course has applied to every other heuristic since Module 1.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">Is 7 papers enough for a real USENIX-style related work section?</div>
+    <div class="a">For a worked example, yes; for a real paper, usually not — a genuine related-work section for an active research area like this would typically survey dozens of papers. This module demonstrates the mechanism at a scale a reader can actually verify by hand, not a claim that 7 papers constitutes adequate coverage of the field.</div>
+  </div>
+
+  <h2><span class="section-num">09</span>What's Next</h2>
+  <p>A comparison matrix organizes prior work — it doesn't yet argue
+  anything. Module 28 takes this exact matrix and derives the actual
+  novelty/gap claim: which combination of dimensions no existing paper
+  satisfies.</p>
+
+  <div class="module-footer-nav">
+    <div class="prev"><a href="../26_living_review_updater/tutorial.html">← Module 26: Living Review Updater</a></div>
+    <div class="next"><a href="../28_positioning_gap_statement_generator/tutorial.html">Module 28: Positioning & Gap-Statement Generator →</a></div>
+  </div>
+</div>
+</body>
+</html>
