@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Module 10: Data Extraction Form Engine</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+<style>:root{--accent:#b5651d;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Module 10 — Track 1: Core Engine</span>Data Extraction Form Engine</h1>
+
+  <h2><span class="section-num">00</span>Before You Start</h2>
+  <p>No new prerequisite page — this module builds on the general idea of
+  a validated, structured schema you've already seen in
+  <a href="../01_research_question_formalizer/tutorial.html">Module 1</a>'s
+  framework slots and <a href="../02_boolean_query_builder/tutorial.html">Module 2</a>'s
+  controlled vocabulary.</p>
+
+  <h2><span class="section-num">01</span>The Big Analogy</h2>
+  <div class="analogy-box">
+    <span class="label">The tax form, not the blank notepad</span>
+    A tax authority doesn't ask you to describe your income in a paragraph
+    — it gives you a form with a specific box for a specific number, and
+    the form rejects "a lot of money" the moment you try to submit it. The
+    box doesn't know your actual income; it only guarantees that whatever
+    you did submit is at least the right <em>shape</em> — a number, not a
+    sentence.
+    <br><br>
+    <code>REMOTE_WORK_SCHEMA</code> is that form. It doesn't read a paper
+    and figure out its sample size for you — a human still has to read the
+    paper and type <code>210</code>. What the schema guarantees is that
+    <code>"about two hundred"</code> gets rejected before it ever reaches a
+    row of your evidence table, the same way the tax form rejects a
+    sentence where it expects a number.
+  </div>
+
+  <h2><span class="section-num">02</span>What Happens, Step by Step</h2>
+  <ol class="checklist">
+    <li>An <code>ExtractionSchema</code> is a list of <code>ExtractionField</code>s, each with a name, an expected Python type, whether it's required, and an optional value <code>validator</code></li>
+    <li>A human reads a paper and fills in a plain dict of extracted values — this module never reads the paper for you</li>
+    <li><code>validate_extraction()</code> checks every required field is present, every present value matches its declared type, and every value with a validator passes it</li>
+    <li>The first thing wrong raises <code>ExtractionValidationError</code> with a specific, actionable message — not a generic "invalid data"</li>
+    <li>Data that survives validation becomes an <code>ExtractedRecord</code>, tied to the <code>Record</code> it was extracted from</li>
+  </ol>
+
+  <h2><span class="section-num">03</span>A Map of the State</h2>
+  <div class="diagram-box">
+    <pre style="border:none; background:none; padding:0;"><code>REMOTE_WORK_SCHEMA.fields:
+  sample_size       int   required  validator=positive_int
+  study_design      str   required  validator=one_of({"RCT","cohort",...})
+  effect_direction  str   required  validator=one_of({"positive",...})
+  comparison_group  str   required  (no extra validator)
+  outcome_measure   str   optional  (no extra validator)
+
+data = {"sample_size": "about two hundred", "study_design": "RCT", ...}
+        │
+        ▼
+validate_extraction(schema, data)
+        │
+   for field "sample_size":
+     isinstance("about two hundred", int)?  →  False
+        │
+        ▼
+raise ExtractionValidationError(
+   'field "sample_size" expected int, got str (\'about two hundred\')')</code></pre>
+  </div>
+
+  <h2><span class="section-num">04</span>The Code, Explained</h2>
+  <pre><code>def validate_extraction(schema, data):
+    for f in schema.fields:
+        if f.name not in data:
+            if f.required:
+                raise ExtractionValidationError(f'missing required field "{f.name}"')
+            continue
+        value = data[f.name]
+        if not isinstance(value, f.field_type):
+            raise ExtractionValidationError(
+                f'field "{f.name}" expected {f.field_type.__name__}, '
+                f'got {type(value).__name__} ({value!r})'
+            )
+        if f.validator is not None and not f.validator(value):
+            raise ExtractionValidationError(f'field "{f.name}" failed validation: {value!r}')</code></pre>
+  <p>And the reusable validator factory that makes controlled-set checks a
+  one-liner:</p>
+  <pre><code>def one_of(allowed: set):
+    return lambda v: v in allowed
+
+# usage:
+ExtractionField("study_design", str, validator=one_of({"RCT", "cohort", "cross-sectional", "qualitative"}))</code></pre>
+
+  <h2><span class="section-num">05</span>Limits / What You Cannot Do Yet</h2>
+  <div class="compare-grid">
+    <div class="compare-col cant">
+      <h4>Can't do yet</h4>
+      <ul>
+        <li>Read a paper and fill in the data itself — that's still a human's job, by design</li>
+        <li>Cross-field validation ("if design is 'qualitative', sample_size should probably be small") — each field is validated independently</li>
+        <li>Assemble many extracted records into a comparable table — that's Module 14</li>
+      </ul>
+    </div>
+    <div class="compare-col can">
+      <h4>Can do</h4>
+      <ul>
+        <li>Guarantee every accepted extraction has the right fields, right types, right allowed values</li>
+        <li>Name exactly what's wrong with rejected data, not just that something is</li>
+        <li>Make "what counts as a valid extraction" an explicit, inspectable schema instead of an unwritten convention in someone's head</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2><span class="section-num">06</span>Run It</h2>
+  <pre><code>python extraction_engine.py</code></pre>
+  <p>Expected output (deterministic, no network involved):</p>
+  <pre><code>All self-checks passed.
+
+======================================================================
+A valid extraction
+======================================================================
+Extracted OK: {'sample_size': 210, 'study_design': 'RCT', 'effect_direction': 'positive', 'comparison_group': 'in-office workers', 'outcome_measure': 'output per hour'}
+
+======================================================================
+Three ways bad data gets caught, not silently accepted
+======================================================================
+  [missing required field] caught: missing required field "study_design"
+  [wrong type] caught: field "sample_size" expected int, got str ('about two hundred')
+  [value outside controlled set] caught: field "study_design" failed validation: 'focus group'</code></pre>
+
+  <h2><span class="section-num">07</span>Brain Exercise</h2>
+  <div class="brain-exercise">
+    <details>
+      <summary>Why does this schema separate "type check" (`isinstance`) from "value validator" instead of doing both in one function per field?</summary>
+      <div class="answer">
+        Because they fail for different reasons and get fixed differently.
+        A type failure means the data wasn't even the right kind of thing
+        (a sentence where a number belonged) — a data-entry mistake. A
+        validator failure means the data was the right kind of thing but
+        the wrong specific value (a real string, just not one of the four
+        allowed study designs) — a classification mistake. Keeping them
+        separate means the error message can be specific about which kind
+        of mistake happened, and means adding a new value constraint later
+        never requires touching the type-checking code at all.
+      </div>
+    </details>
+  </div>
+
+  <h2><span class="section-num">08</span>There Are No Dumb Questions</h2>
+  <div class="qa-entry">
+    <div class="q">Isn't it a little disappointing that "Data Extraction Form Engine" doesn't actually extract data from the paper?</div>
+    <div class="a">It's a real, deliberate boundary, not a shortfall — see DECISIONS.md. Reliably pulling a sample size out of arbitrary prose is genuinely hard NLP, explicitly out of this course's stated scope. What this module proves — that a validated schema makes structured data trustworthy — is real and useful on its own, independent of who or what fills the form in.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">Could two different reviewers extracting the same paper get different valid answers?</div>
+    <div class="a">Yes, easily — the schema only validates <em>shape</em> (is this an int, is this one of four allowed strings), not <em>correctness</em> (did you read the paper's methods section accurately). Real systematic reviews handle this with double extraction — two reviewers independently fill the same form, then reconcile disagreements — which is a human process this module doesn't attempt to automate.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">Why is `comparison_group` a free-text `str` field with no `one_of()` validator, unlike `study_design`?</div>
+    <div class="a">Because a comparison group genuinely varies too much across studies to fit a small fixed set — "in-office workers," "pre-pandemic baseline," "hybrid-schedule workers" are all real, legitimate values a set-based validator would have to either include all of (defeating the purpose of a controlled set) or wrongly reject.</div>
+  </div>
+
+  <h2><span class="section-num">09</span>What's Next</h2>
+  <p>Extraction gives you structured facts about one study at a time.
+  Before those facts can be trusted enough to synthesize, each study's
+  quality needs to be assessed. Module 11 builds a checklist-based
+  risk-of-bias scorer.</p>
+
+  <div class="module-footer-nav">
+    <div class="prev"><a href="../09_fulltext_eligibility_engine/tutorial.html">← Module 9: Full-Text Eligibility Engine</a></div>
+    <div class="next"><a href="../11_risk_of_bias_scorer/tutorial.html">Module 11: Risk-of-Bias / Quality Appraisal Scorer →</a></div>
+  </div>
+</div>
+</body>
+</html>
