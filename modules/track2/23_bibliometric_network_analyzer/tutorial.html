@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Module 23: Bibliometric / Citation Network Analyzer</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+<style>:root{--accent:#6a4a9a;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Module 23 — Track 2: Applied Layer</span>Bibliometric / Citation Network Analyzer</h1>
+
+  <div class="prereq-tags">
+    <span class="status-badge">Depends on Track 1:</span>
+    <a href="../../track1/05_multi_source_aggregator/tutorial.html">Module 5</a>
+    <a href="../../track1/13_citation_snowballing_engine/tutorial.html">Module 13</a>
+  </div>
+
+  <div class="warning-box">Needs internet access — real, live Crossref and Semantic Scholar calls.</div>
+
+  <h2><span class="section-num">00</span>Before You Start</h2>
+  <p>Finished <a href="../../track1/13_citation_snowballing_engine/tutorial.html">Module 13</a> —
+  this module reuses its <code>backward_snowball()</code> and
+  <code>forward_snowball()</code> functions directly.</p>
+
+  <h2><span class="section-num">01</span>The Big Analogy</h2>
+  <div class="analogy-box">
+    <span class="label">The detective's cork board</span>
+    A detective pins photos to a cork board and connects them with red
+    string — this suspect knows that one, that one was seen with a third.
+    Some photos end up with string radiating out in every direction; those
+    are the central figures. And sometimes two photos with no direct
+    string between them are both connected to the same third photo — the
+    detective circles that pattern, because two people connected to the
+    same third party, even without knowing each other, are worth
+    investigating together.
+    <br><br>
+    That's this module. <code>CitationGraph</code> is the cork board.
+    <code>in_degree()</code> finds the photos with the most string pointing
+    at them. <code>find_co_citation_pairs()</code> finds exactly that
+    "not directly connected, but both connected to the same third paper"
+    pattern — real co-citation, the bibliometric technique for finding
+    related work without reading either paper's content.
+  </div>
+
+  <h2><span class="section-num">02</span>What Happens, Step by Step</h2>
+  <ol class="checklist">
+    <li>Module 13's <code>backward_snowball()</code> and <code>forward_snowball()</code> fetch the seed paper's real references and real citing papers, live</li>
+    <li>Each result becomes an edge in a <code>CitationGraph</code> — <code>(citing_doi, cited_doi)</code> — with node identity kept consistent via Module 6's <code>normalize_doi()</code></li>
+    <li>A real second hop is fetched: the reference lists of the first two forward-citing papers, checked for overlap with the graph's existing nodes</li>
+    <li><code>in_degree()</code>/<code>out_degree()</code> compute real degree centrality directly from the edge set</li>
+    <li><code>find_co_citation_pairs()</code> groups edges by citing paper and reports every pair of papers cited together by the same citer</li>
+  </ol>
+
+  <h2><span class="section-num">03</span>A Map of the State</h2>
+  <div class="diagram-box">
+    <pre style="border:none; background:none; padding:0;"><code>Seed: "Evaluating Fuzz Testing" (2018)
+        │
+   backward_snowball()          forward_snowball()
+        │                              │
+        ▼                              ▼
+"Directed Greybox Fuzzing" (2017)   "Advancing fuzzing with unbiased
+   <── cited by seed                   random generator..." (2026)
+        │                              cites seed ──┐
+        │                                            │
+        └───── ALSO cited by ◄──────────────────────┘
+               (discovered by fetching this citing paper's OWN
+                reference list — a real, unplanned overlap)
+
+Result: "Directed Greybox Fuzzing" has in-degree 2 — the highest of any
+non-seed node — and forms a real co-citation pair with the seed itself,
+via the 2026 paper that cites both.</code></pre>
+  </div>
+
+  <h2><span class="section-num">04</span>The Code, Explained</h2>
+  <pre><code>def find_co_citation_pairs(graph):
+    by_citer = {}
+    for citing, cited in graph.edges:
+        by_citer.setdefault(citing, set()).add(cited)
+
+    pair_counts = {}
+    for cited_set in by_citer.values():
+        cited_list = sorted(cited_set)
+        for i in range(len(cited_list)):
+            for j in range(i + 1, len(cited_list)):
+                pair = frozenset({cited_list[i], cited_list[j]})
+                pair_counts[pair] = pair_counts.get(pair, 0) + 1
+    return pair_counts</code></pre>
+  <p>Grouping by citer first is what makes this real co-citation and not
+  just "any two nodes in the graph" — a pair only counts if one real paper
+  actually cited both.</p>
+
+  <h2><span class="section-num">05</span>Limits / What You Cannot Do Yet</h2>
+  <div class="compare-grid">
+    <div class="compare-col cant">
+      <h4>Can't do yet</h4>
+      <ul>
+        <li>Compute more sophisticated centrality (PageRank, betweenness) — only simple in/out degree</li>
+        <li>Cluster the graph into communities automatically — co-citation pairs are found, not grouped into clusters</li>
+        <li>Scale past a handful of hops — every additional hop is more live API calls, and this module fetches only 2</li>
+      </ul>
+    </div>
+    <div class="compare-col can">
+      <h4>Can do</h4>
+      <ul>
+        <li>Build a real citation graph from two independent live sources and analyze it as data, not narrative</li>
+        <li>Find real, unplanned structural overlaps — proof the underlying corpus has hidden relationships a synthesis-focused reading would never surface</li>
+        <li>Reuse two prior modules' real functions (Module 6's normalization, Module 13's snowballing) unmodified</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2><span class="section-num">06</span>Run It</h2>
+  <pre><code>python bibliometric_analyzer.py</code></pre>
+  <p>Real output captured 2026-07-28 (your live results will almost
+  certainly differ — this is live citation data):</p>
+  <pre><code>All self-checks passed (no network required for these).
+
+Seed: 'Evaluating Fuzz Testing' (10.1145/3243734.3243804)
+
+Hop 2: references of the first 2 forward-citing papers (real 2nd-hop data)...
+  10.1016/j.softx.2026.102888: 3 references found; overlaps with our graph: none
+  10.1016/j.infsof.2026.108140: 18 references found; overlaps with our graph: {'10.1145/3133956.3134020'}
+
+Degree centrality (in-degree = how many times cited within this graph)
+  in=3 out=3  Evaluating Fuzz Testing
+  in=2 out=0  Directed Greybox Fuzzing
+  in=1 out=0  The DaCapo benchmarks
+  in=1 out=0  A practical guide for using statistical tests to assess
+  ...
+
+Co-citation pairs (cited together by the same paper)
+  1x: ['Directed Greybox Fuzzing', 'Evaluating Fuzz Testing']
+  ...</code></pre>
+
+  <h2><span class="section-num">07</span>Brain Exercise</h2>
+  <div class="brain-exercise">
+    <details>
+      <summary>The Hop 2 output shows one citing paper had "0 overlaps" and the other had a real one. What would it mean, methodologically, if this pattern held across many more citing papers?</summary>
+      <div class="answer">
+        If many of the seed's citing papers turned out to also cite
+        "Directed Greybox Fuzzing," that would be real evidence those two
+        papers are considered closely related work by the field itself —
+        not because either paper says so, but because independent authors
+        keep citing both together. That's the actual practical use of
+        co-citation analysis in a real literature review: it can surface
+        "these two papers belong in the same conversation" even when
+        you'd have no reason to notice it just from reading either paper's
+        abstract. One overlap out of two checked citing papers is a real
+        but very small signal — the Limits section is explicit that this
+        module's 2-hop graph is far too small to draw a confident
+        conclusion from, only to demonstrate that the technique works.
+      </div>
+    </details>
+  </div>
+
+  <h2><span class="section-num">08</span>There Are No Dumb Questions</h2>
+  <div class="qa-entry">
+    <div class="q">Why fetch references for only the first 2 forward-citing papers instead of all 5?</div>
+    <div class="a">Cost, mirroring Module 13's own `max_resolve` reasoning — each additional paper checked is another live Crossref call. Two was enough to demonstrate the mechanism and, as it happened, to find a real overlap; a production tool doing this at scale would need to budget API calls much more carefully across potentially hundreds of papers.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">Is in-degree alone a good measure of a paper's importance?</div>
+    <div class="a">It's the simplest one, and it's what this module implements — but real bibliometrics also uses more sophisticated measures like PageRank (which weighs a citation from a highly-cited paper more than one from an obscure paper), explicitly named in the Limits section as not yet implemented here.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">Could this graph include records from Module 5's live PubMed+arXiv search too, not just Module 13's snowball results?</div>
+    <div class="a">Only for records that carry a real DOI Crossref or Semantic Scholar can look up — `CitationGraph`'s nodes are DOI-keyed. A PubMed record with a resolvable DOI could be added as another seed; an arXiv preprint without a DOI would need a different node-identity scheme entirely.</div>
+  </div>
+
+  <h2><span class="section-num">09</span>What's Next</h2>
+  <p>Module 24 shifts from analyzing the corpus's structure to synthesizing
+  its content again — but for qualitative studies specifically, building on
+  Module 15's thematic coding into a full meta-ethnography.</p>
+
+  <div class="module-footer-nav">
+    <div class="prev"><a href="../22_rapid_review_adapter/tutorial.html">← Module 22: Rapid Review Adapter</a></div>
+    <div class="next"><a href="../24_qualitative_evidence_synthesis/tutorial.html">Module 24: Qualitative Evidence Synthesis →</a></div>
+  </div>
+</div>
+</body>
+</html>
