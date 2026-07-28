@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Module 9: Full-Text Eligibility Engine</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+<style>:root{--accent:#b06ab3;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Module 9 — Track 1: Core Engine</span>Full-Text Eligibility Engine</h1>
+
+  <div class="prereq-tags">
+    <span class="status-badge">Prerequisites:</span>
+    <a href="../../../prerequisites/prereq_eligibility_criteria.html">Eligibility Criteria Logic</a>
+  </div>
+
+  <h2><span class="section-num">00</span>Before You Start</h2>
+  <p>Finished <a href="../08_screening_engine/tutorial.html">Module 8</a> —
+  this module is explicitly the second pass on whatever survived the first.</p>
+
+  <h2><span class="section-num">01</span>The Big Analogy</h2>
+  <div class="analogy-box">
+    <span class="label">The resume vs. the reference check</span>
+    A resume is written to look as strong as possible — that's not
+    dishonest, it's just the nature of a one-page summary. A reference
+    check calls former employers and asks specific questions the resume
+    never had to answer: what was this person's actual role, how
+    long did they really work there, would you hire them again. Plenty of
+    resumes that look great on paper don't survive a real reference check
+    — not because they lied, but because a summary necessarily leaves
+    things out.
+    <br><br>
+    An abstract is the resume. Full text is the reference check. Neither
+    of this module's two example exclusions involved a dishonest abstract
+    — both papers' abstracts genuinely sound relevant. Reading further
+    revealed a detail that changes the verdict.
+  </div>
+
+  <h2><span class="section-num">02</span>What Happens, Step by Step</h2>
+  <ol class="checklist">
+    <li>Each surviving record from Module 8 gets paired with its full text into a <code>FullTextRecord</code></li>
+    <li><code>screen_full_text()</code> applies <code>DEFAULT_RULES</code> in order — population check first, then design check — exactly like Module 8's first-failure-wins logic</li>
+    <li><code>population_is_knowledge_workers()</code> fails if the full text mentions a disqualifying population term ("undergraduate," "university students") that the abstract never mentioned</li>
+    <li><code>design_is_comparative()</code> fails if the full text describes a purely qualitative interview design with no comparative/quantitative marker</li>
+    <li>A record failing neither rule is genuinely included — confirmed by full text, not just by a promising-sounding abstract</li>
+  </ol>
+
+  <h2><span class="section-num">03</span>A Map of the State</h2>
+  <div class="diagram-box">
+    <pre style="border:none; background:none; padding:0;"><code>Abstract: "We examine how remote work arrangements relate to team
+           output..."                              <- sounds on-topic
+        │
+        ▼  (would have passed Module 8's title/abstract screen)
+Full text: "...Methods: We conducted semi-structured interviews with
+            12 remote employees to explore their subjective experience..."
+        │
+        ▼
+population_is_knowledge_workers()?  →  True  (no disqualifying term)
+        ▼
+design_is_comparative()?  →  False  (interview language present,
+                                      no comparative marker found)
+        │
+        ▼  STOP
+excluded: "full text reveals qualitative-only design, not eligible
+           for this quantitative synthesis"</code></pre>
+  </div>
+
+  <h2><span class="section-num">04</span>The Code, Explained</h2>
+  <p>The rule that catches a design mismatch invisible in the abstract:</p>
+  <pre><code>def design_is_comparative(item: FullTextRecord) -> bool:
+    text = item.full_text.lower()
+    qualitative_only_marker = "semi-structured interviews" in text
+    comparative_marker = any(
+        term in text for term in ("compared to", "measured output", "randomly assigned")
+    )
+    return not (qualitative_only_marker and not comparative_marker)</code></pre>
+  <p>Notice the logic: this rule doesn't fail just because interviews are
+  mentioned — plenty of legitimate comparative studies use interviews
+  alongside quantitative measures. It only fails when interview language
+  appears <em>with no comparative marker anywhere</em>, which is the
+  actual signal of a qualitative-only design the abstract didn't disclose.</p>
+
+  <h2><span class="section-num">05</span>Limits / What You Cannot Do Yet</h2>
+  <div class="compare-grid">
+    <div class="compare-col cant">
+      <h4>Can't do yet</h4>
+      <ul>
+        <li>Fetch full text automatically — someone (a human, or a future module) has to supply it</li>
+        <li>Handle a PDF at all — plain text only</li>
+        <li>Detect nuance a keyword rule can't express (a design that's comparative but never uses any of the three marker phrases would incorrectly fail)</li>
+      </ul>
+    </div>
+    <div class="compare-col can">
+      <h4>Can do</h4>
+      <ul>
+        <li>Prove, concretely, that a second full-text pass catches real disqualifications an abstract-only pass would miss</li>
+        <li>Log a specific, accurate reason tied to what full text actually revealed</li>
+        <li>Feed <code>excluded_by_reason()</code> straight into Module 7's tracker, same as Module 8</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2><span class="section-num">06</span>Run It</h2>
+  <pre><code>python fulltext_engine.py</code></pre>
+  <p>Expected output (deterministic, no network involved):</p>
+  <pre><code>All self-checks passed.
+
+These three records ALL passed a hypothetical title/abstract screen
+(all three abstracts sound on-topic and relevant). Full text tells a
+different story for two of them:
+
+  EXCLUDED: Remote Work Arrangements and Team Output in Technology Firms
+    reason: full text reveals qualitative-only design, not eligible for this quantitative synthesis
+  EXCLUDED: Productivity Effects of Flexible Work Policies Among University Students
+    reason: population confirmed as students, not knowledge workers, upon reading full text
+  INCLUDED: A Longitudinal Comparison of Remote and In-Office Knowledge Worker Output
+
+Excluded by reason: {'full text reveals qualitative-only design, not eligible for this quantitative synthesis': 1, 'population confirmed as students, not knowledge workers, upon reading full text': 1}
+Included: 1 / 3</code></pre>
+
+  <h2><span class="section-num">07</span>Brain Exercise</h2>
+  <div class="brain-exercise">
+    <details>
+      <summary>This module's demo uses three invented records instead of real papers fetched live in Modules 4-5. Given how much this course values real, verified data, why make that call here specifically?</summary>
+      <div class="answer">
+        Because "real" and "honest" pointed in different directions for
+        once. This course genuinely fetched real titles and abstracts from
+        PubMed and arXiv in earlier modules — but it has no legitimate
+        access to those real papers' actual full text. Attaching invented
+        "full text" to a real paper's real title and real authors would
+        make a false claim about what a specific, identifiable real paper
+        actually says — arguably worse than using a clearly fictional
+        example, which makes no claim about any real work at all. When
+        "verify against real data" and "don't fabricate claims about real
+        things" would conflict, this module chose not fabricating over
+        superficial realism.
+      </div>
+    </details>
+  </div>
+
+  <h2><span class="section-num">08</span>There Are No Dumb Questions</h2>
+  <div class="qa-entry">
+    <div class="q">Couldn't this module just re-run Module 8's rules against the full text too, instead of writing new ones?</div>
+    <div class="a">Module 8's rules (abstract availability, publication year, a keyword check) already did their job at that stage. Full-text eligibility rules ask fundamentally different questions — ones that specifically couldn't be answered from an abstract, like confirming the actual study population or design. Re-running the same rules would just repeat the first pass, not add a second one.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">What if the full text is in a different language, or is actually the wrong paper's text entirely?</div>
+    <div class="a">This module has no way to detect that — it trusts that whatever string it's handed genuinely is that record's full text. That trust boundary is real and worth naming: a full-text retrieval step (out of this module's scope) is where that kind of error would need to be caught, before the text ever reaches this module's rules.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">Is a keyword-based full-text rule actually reliable for a real review?</div>
+    <div class="a">Not fully — the Limits section says so directly: a legitimately comparative study that never uses any of the three marker phrases would be wrongly excluded. Real full-text eligibility screening is usually done by a human reading the methods section, informed by criteria like these rules rather than replaced by them. This module demonstrates the logic and the value of a second pass, not a claim that keyword rules alone are sufficient for a real review.</div>
+  </div>
+
+  <h2><span class="section-num">09</span>What's Next</h2>
+  <p>Everything so far has decided whether a record stays in the review.
+  Module 10 starts asking what to actually <em>do</em> with the records
+  that made it this far — pulling structured data out of each one via a
+  validated extraction form.</p>
+
+  <div class="module-footer-nav">
+    <div class="prev"><a href="../08_screening_engine/tutorial.html">← Module 8: Title/Abstract Screening Engine</a></div>
+    <div class="next"><a href="../10_data_extraction_engine/tutorial.html">Module 10: Data Extraction Form Engine →</a></div>
+  </div>
+</div>
+</body>
+</html>
