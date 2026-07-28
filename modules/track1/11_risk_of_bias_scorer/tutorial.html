@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Module 11: Risk-of-Bias / Quality Appraisal Scorer</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+<style>:root{--accent:#8f3d56;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Module 11 — Track 1: Core Engine</span>Risk-of-Bias / Quality Appraisal Scorer</h1>
+
+  <div class="prereq-tags">
+    <span class="status-badge">Prerequisites:</span>
+    <a href="../../../prerequisites/prereq_study_design_taxonomy.html">Study Design Taxonomy & Evidence Hierarchy</a>
+  </div>
+
+  <h2><span class="section-num">00</span>Before You Start</h2>
+  <p>Read Prerequisite 4, specifically its warning box: "the pyramid is a
+  simplification... don't treat design type alone as a final verdict on
+  quality." This module is what actually checks quality, per-study, beyond
+  just knowing its design type.</p>
+
+  <h2><span class="section-num">01</span>The Big Analogy</h2>
+  <div class="analogy-box">
+    <span class="label">The health inspector who doesn't just average the checklist</span>
+    A restaurant inspection has ten checkpoints. Nine are spotless. The
+    tenth is "raw chicken stored directly above ready-to-eat lettuce." A
+    health inspector who averaged all ten checkpoints would hand out a
+    glowing 90% grade — and someone could get salmonella from a restaurant
+    with a 90%. A real inspector doesn't average; a serious violation on
+    even one critical checkpoint can outweigh nine clean ones.
+    <br><br>
+    This module's <code>score_checklist()</code> <em>does</em> average —
+    deliberately, as a teaching simplification — and its own self-checks
+    prove exactly the health-inspector problem: a study with a serious,
+    specific flaw (no blinding, an RCT's raw-chicken-over-lettuce moment)
+    still scores <code>0.80</code>, "low risk," because four other domains
+    were clean. That's not a bug. It's this module honestly demonstrating
+    why the real Cochrane RoB2 tool refuses to average at all.
+  </div>
+
+  <h2><span class="section-num">02</span>What Happens, Step by Step</h2>
+  <ol class="checklist">
+    <li>Based on a study's design, the right <code>Checklist</code> is selected from <code>CHECKLISTS_BY_DESIGN</code> — an RCT and a qualitative study never share one</li>
+    <li>A human answers each item <code>"yes"</code>, <code>"unclear"</code>, or <code>"no"</code></li>
+    <li><code>score_checklist()</code> validates every item is answered with a valid value, weights each answer (<code>1.0</code>/<code>0.5</code>/<code>0.0</code>), and averages</li>
+    <li>The average maps to a band: <code>"low risk"</code> (≥0.8), <code>"some concerns"</code> (≥0.5), or <code>"high risk"</code></li>
+    <li>The single worst-scoring item is always reported alongside the average — a direct, deliberate mitigation for the averaging weakness this module documents rather than hides</li>
+  </ol>
+
+  <h2><span class="section-num">03</span>A Map of the State</h2>
+  <div class="diagram-box">
+    <pre style="border:none; background:none; padding:0;"><code>RCT_CHECKLIST items: [random_sequence, allocation_concealment,
+                       blinding, incomplete_data, selective_reporting]
+
+answers = {
+  random_sequence:        "yes"    -> weight 1.0
+  allocation_concealment: "yes"    -> weight 1.0
+  blinding:               "no"     -> weight 0.0   <- serious, specific flaw
+  incomplete_data:        "yes"    -> weight 1.0
+  selective_reporting:    "yes"    -> weight 1.0
+}
+        │
+        ▼
+proportion = (1.0+1.0+0.0+1.0+1.0) / 5 = 0.80
+band = "low risk"          <- clears the threshold anyway
+lowest_scoring_item = "blinding"   <- the mitigation: always surfaced</code></pre>
+  </div>
+
+  <h2><span class="section-num">04</span>The Code, Explained</h2>
+  <pre><code>weighted = [(item.key, _WEIGHTS[answers[item.key]]) for item in checklist.items]
+proportion = sum(w for _k, w in weighted) / len(weighted)
+band = "low risk" if proportion >= 0.8 else "some concerns" if proportion >= 0.5 else "high risk"
+lowest_key = min(weighted, key=lambda kv: kv[1])[0]</code></pre>
+  <p>Three lines produce the average and the band; the fourth line is the
+  module's answer to its own weakness — <code>lowest_key</code> means a
+  human reading the result is never limited to the number that can hide a
+  serious problem.</p>
+
+  <h2><span class="section-num">05</span>Limits / What You Cannot Do Yet</h2>
+  <div class="compare-grid">
+    <div class="compare-col cant">
+      <h4>Can't do yet</h4>
+      <ul>
+        <li>Match the real Cochrane RoB2 or CASP checklists verbatim — these are simplified, condensed versions</li>
+        <li>Weight one domain as more critical than another automatically — averaging treats every item equally, which is exactly the demonstrated weakness</li>
+        <li>Answer the checklist itself — a human still has to read the study and judge each item</li>
+      </ul>
+    </div>
+    <div class="compare-col can">
+      <h4>Can do</h4>
+      <ul>
+        <li>Apply a design-appropriate checklist consistently, not a one-size-fits-all judgment call</li>
+        <li>Produce a real, reproducible score from real, validated inputs</li>
+        <li>Honestly surface exactly where its own scoring method can mislead, with a concrete number proving it</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2><span class="section-num">06</span>Run It</h2>
+  <pre><code>python rob_scorer.py</code></pre>
+  <p>Expected output (deterministic, no network involved):</p>
+  <pre><code>All self-checks passed.
+
+======================================================================
+Example 1: RCT with one seriously weak domain, four strong ones
+======================================================================
+  proportion: 0.80  band: 'low risk'
+  weakest domain: blinding
+  NOTE: averaging rates this 'low risk' — the missing blinding on
+  its own is a serious, specific problem a real Cochrane RoB2 assessor
+  would weigh heavily, but four strong domains pull the average high
+  enough to hide it. See DECISIONS.md for why this is a known, real
+  weakness of simple averaging, not a quirk of this module's numbers.
+
+======================================================================
+Example 2: Qualitative study, branch on design
+======================================================================
+  proportion: 0.88  band: 'low risk'
+
+======================================================================
+Example 3: missing/invalid answers are caught, not silently scored
+======================================================================
+  missing answer caught: no answer given for "allocation_concealment" (Was allocation adequately concealed until assignment?)
+  invalid answer caught: answer for "blinding" must be one of ['no', 'unclear', 'yes'], got 'sort of'</code></pre>
+
+  <h2><span class="section-num">07</span>Brain Exercise</h2>
+  <div class="brain-exercise">
+    <details>
+      <summary>If this module already knows averaging can hide a serious flaw, why not just fix it — e.g. cap the band at "high risk" whenever any single item is "no"?</summary>
+      <div class="answer">
+        That would be a real, defensible design — and it's much closer to
+        what Cochrane RoB2 actually does (worst-domain-driven overall
+        judgment). This module deliberately keeps the simpler averaging
+        approach instead, specifically so the weakness stays visible and
+        demonstrable rather than quietly patched over. A teaching module
+        that silently "fixes" the problem the moment it's discovered would
+        rob the learner of seeing the failure mode happen — which is the
+        whole point of Example 1's output. A real production tool should
+        absolutely make the fix this question suggests.
+      </div>
+    </details>
+  </div>
+
+  <h2><span class="section-num">08</span>There Are No Dumb Questions</h2>
+  <div class="qa-entry">
+    <div class="q">Why keep an admittedly weaker scoring method instead of just implementing the real Cochrane RoB2 algorithm?</div>
+    <div class="a">The real algorithm's value comes specifically from its domain-by-domain signalling questions and structured overall-judgment rules — a substantial, detailed specification. Reproducing it faithfully is a legitimate, larger undertaking than this module's scope; showing why averaging is the wrong shortcut, with a real demonstrated failure, teaches the underlying lesson honestly without requiring that full reproduction.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">Could `unclear` legitimately mean something different for different checklist items?</div>
+    <div class="a">In real appraisal practice, yes — "unclear" on "was blinding used" might mean "not reported," while "unclear" on "was the design appropriate" might mean genuine reviewer uncertainty. This module treats every "unclear" as worth exactly 0.5 regardless of item, which is a real simplification worth knowing about if you extend this module.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">What happens to a study whose design doesn't match any of the three checklists?</div>
+    <div class="a">This module doesn't handle that case — `CHECKLISTS_BY_DESIGN` only has three entries. A real review encountering a design outside RCT/cohort/qualitative (a case-control study, say) would need a fourth checklist added, following the exact same pattern as the other three.</div>
+  </div>
+
+  <h2><span class="section-num">09</span>What's Next</h2>
+  <p>Phase 1 has one module left: rendering the PRISMA Flow Tracker's
+  accumulated state (Module 7) into the actual field-standard flow diagram
+  artifact.</p>
+
+  <div class="module-footer-nav">
+    <div class="prev"><a href="../10_data_extraction_engine/tutorial.html">← Module 10: Data Extraction Form Engine</a></div>
+    <div class="next"><a href="../12_prisma_diagram_generator/tutorial.html">Module 12: PRISMA Diagram Generator →</a></div>
+  </div>
+</div>
+</body>
+</html>
