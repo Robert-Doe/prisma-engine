@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Module 4: Live API Connector</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+<style>:root{--accent:#e2725b;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Module 4 — Track 1: Core Engine</span>Live API Connector</h1>
+
+  <div class="prereq-tags">
+    <span class="status-badge">Prerequisites:</span>
+    <a href="../../../prerequisites/prereq_boolean_search.html">Boolean Search & Controlled Vocabulary</a>
+    <a href="../../../prerequisites/prereq_bibliographic_metadata.html">Bibliographic Metadata & Identifiers</a>
+  </div>
+
+  <div class="warning-box">
+    <strong>This module needs internet access to run</strong>, and unlike
+    every module before it, its exact output is not reproducible — PubMed's
+    index changes continuously. What's captured below is real output from
+    one real run on 2026-07-27, not a guarantee of what you'll see.
+  </div>
+
+  <h2><span class="section-num">00</span>Before You Start</h2>
+  <p>You need Prerequisites 2 and 3, plus finished
+  <a href="../02_boolean_query_builder/tutorial.html">Module 2</a> and
+  <a href="../03_bibliographic_record_model/tutorial.html">Module 3</a> —
+  this module sends Module 2's query string to a real API and parses the
+  reply with Module 3's <code>Record</code> model.</p>
+
+  <h2><span class="section-num">01</span>The Big Analogy</h2>
+  <div class="analogy-box">
+    <span class="label">Mailing the letter</span>
+    Every module up to now has been drafting a letter — carefully worded,
+    logically structured, addressed as precisely as we know how. This
+    module is the moment it actually gets mailed to a real foreign postal
+    system, and a reply comes back.
+    <br><br>
+    Two things happen the moment a letter actually goes out that never
+    happen while you're still drafting it. First, you discover the address
+    format the recipient's postal system actually uses isn't quite what
+    you assumed — our <code>MeSH:"Telework"</code> label needs translating
+    into PubMed's own <code>"Telework"[mesh]</code> dialect before their
+    system can read it at all. Second — and this is the part that can't
+    happen with a draft sitting on your desk — you find out one of the
+    facts in your letter was simply wrong. We wrote "Telework" assuming it
+    was a real, standard heading. PubMed's reply says: no such heading
+    exists. Only mailing the letter could have told us that.
+  </div>
+
+  <h2><span class="section-num">02</span>What Happens, Step by Step</h2>
+  <ol class="checklist">
+    <li><code>verify_mesh_term()</code> checks a controlled-vocabulary term against the live database before trusting it — run on both "Telework" and "Teleworking," only the second is real</li>
+    <li><code>translate_vocab_tag()</code> rewrites Module 2's internal <code>MeSH:"X"</code> convention into PubMed's real <code>"X"[mesh]</code> field-tag syntax</li>
+    <li><code>esearch()</code> sends the translated query to PubMed, getting back matching PMIDs, a total count, and PubMed's own parsed interpretation of the query</li>
+    <li>After a courtesy delay, <code>esummary()</code> fetches metadata for those PMIDs in one batched call</li>
+    <li><code>parse_pubmed_summary()</code> converts each raw summary into a Module 3 <code>Record</code> — extracting year from a free-text pubdate string, finding the DOI inside a list of article-ID objects, and stripping PubMed's cosmetic trailing period from titles</li>
+  </ol>
+
+  <h2><span class="section-num">03</span>A Map of the State</h2>
+  <div class="diagram-box">
+    <pre style="border:none; background:none; padding:0;"><code>verify_mesh_term("Telework")      -> False  (0 results, quotedphrasesnotfound)
+verify_mesh_term("Teleworking")   -> True   (563 results, real MeSH heading)
+        │
+        ▼
+query (Module 2, corrected term)
+  ("knowledge workers" OR "office workers" OR employees)
+  AND ("remote work" OR telecommut* OR "work from home"
+       OR "hybrid work" OR MeSH:"Teleworking")
+        │
+        ▼
+translate_vocab_tag()  →  MeSH:"Teleworking"  becomes  "Teleworking"[mesh]
+        │
+        ▼
+esearch()  ──────►  PMIDs: [42478010, ...]   total_count: 905
+        │            querytranslation: PubMed's own boolean parse,
+        │            confirming AND/OR/quotes survived intact
+        ▼
+   (0.4s courtesy delay)
+        ▼
+esummary(pmids)  ──►  raw JSON per PMID (title, authors, pubdate,
+        │              articleids, fulljournalname, ...)
+        ▼
+parse_pubmed_summary()  ──►  Record(title=..., authors=[...], year=2026,
+                                     venue=..., doi=..., abstract=None,
+                                     source_format="PubMedESummary")</code></pre>
+  </div>
+
+  <h2><span class="section-num">04</span>The Code, Explained</h2>
+  <p>The translation function exists purely because of what a real call
+  revealed — this is the module's central lesson made concrete in code:</p>
+  <pre><code>def translate_vocab_tag(query, our_tag="MeSH", pubmed_tag="mesh"):
+    """Sent literally, MeSH:"Telework" does NOT restrict the search —
+    PubMed treats "MeSH:" as its own free-text phrase. Verified, not assumed."""
+    pattern = re.compile(rf'{re.escape(our_tag)}:"([^"]+)"')
+    return pattern.sub(lambda m: f'"{m.group(1)}"[{pubmed_tag}]', query)</code></pre>
+  <p>And the verification step that caught the actual error:</p>
+  <pre><code>def verify_mesh_term(term):
+    resp = requests.get(ESEARCH_URL, params={
+        "db": "pubmed", "term": f'"{term}"[mesh]', "retmode": "json"
+    }, headers={"User-Agent": USER_AGENT}, timeout=15)
+    result = resp.json()["esearchresult"]
+    not_found = result.get("warninglist", {}).get("quotedphrasesnotfound", [])
+    return int(result.get("count", 0)) > 0 and not not_found</code></pre>
+
+  <h2><span class="section-num">05</span>Limits / What You Cannot Do Yet</h2>
+  <div class="compare-grid">
+    <div class="compare-col cant">
+      <h4>Can't do yet</h4>
+      <ul>
+        <li>Fetch abstracts — <code>esummary</code> doesn't include them; that needs <code>efetch</code>'s XML format, out of scope here</li>
+        <li>Query any source besides PubMed — Crossref was tested and rejected for this specific job (see DECISIONS.md), not wired up as an alternative</li>
+        <li>Combine results from multiple sources into one corpus — that's Module 5</li>
+        <li>Reproduce the exact same output twice — live data changes</li>
+      </ul>
+    </div>
+    <div class="compare-col can">
+      <h4>Can do</h4>
+      <ul>
+        <li>Prove a boolean query built entirely offline is honored as real boolean logic by a real, live system</li>
+        <li>Catch a wrong assumption (an invalid MeSH term) by actually checking, not by re-reading the assumption more carefully</li>
+        <li>Turn a live API's raw reply into the exact same <code>Record</code> shape every other source uses</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2><span class="section-num">06</span>Run It</h2>
+  <pre><code>python connector.py</code></pre>
+  <p>Real output captured 2026-07-27 (yours will differ in the specific
+  records and counts — PubMed's index isn't frozen):</p>
+  <pre><code>All self-checks passed (no network required for these).
+
+======================================================================
+STEP 0 — verify Module 2's illustrative MeSH term against reality
+======================================================================
+  "Telework"[mesh] is a real MeSH heading? False
+  "Teleworking"[mesh] is a real MeSH heading? True
+
+  -> "Telework" (used illustratively in Modules 2-3) is NOT real.
+     Using the verified term, "Teleworking", from here on.
+
+======================================================================
+LIVE call to PubMed E-utilities...
+======================================================================
+Total matching records in PubMed right now: 905
+PubMed's own parse of our query:
+  ("knowledge workers"[All Fields] OR "office workers"[All Fields] OR (...
+   employees expansion...)) AND ("remote work"[All Fields] OR "telecommut*"
+   [All Fields] OR "work from home"[All Fields] OR "hybrid work"[All Fields]
+   OR "Teleworking"[MeSH Terms])
+
+First 3 records, parsed into Record objects:
+
+  [1] A retrospective study evaluating outcomes of the Allied Health Rural
+      Generalist Training Positions in the Queensland public health system
+      authors: ['Cardell E', 'Randall C', ..., 'Pitt R']
+      year: 2026  venue: Rural and remote health  doi: 10.22605/RRH10326
+
+  [2] Ill at home, still at work? Working from home practices and sickness
+      presenteeism
+      authors: ['Zöhrer L', 'Breitsohl H', 'Backhaus N', 'Meyer SC']
+      year: 2026  venue: Social science & medicine (1982)
+      doi: 10.1016/j.socscimed.2026.119542
+
+  [3] Development of a Blended Physical Activity Intervention for Office
+      Employees Using Intervention Mapping: Intervention Development Study
+      authors: [...]
+      year: 2026  venue: JMIR human factors  doi: 10.2196/87328</code></pre>
+
+  <div class="warning-box">
+    <strong>Getting a connection error or timeout?</strong> This module
+    needs outbound internet access on port 443. If you're behind a
+    restrictive firewall/proxy, <code>requests.get(...)</code> will raise
+    a <code>ConnectionError</code> — that's expected in that environment,
+    not a bug in the code. <strong>Getting a <code>429</code> or
+    rate-limit error?</strong> You're calling faster than NCBI's
+    unauthenticated limit (3 req/sec) — the built-in courtesy delay should
+    prevent this in normal use; if you're running the module in a tight
+    loop for experimentation, add a longer delay.
+  </div>
+
+  <h2><span class="section-num">07</span>Brain Exercise</h2>
+  <div class="brain-exercise">
+    <details>
+      <summary>Module 2 and Module 3's DECISIONS.md both explicitly flagged "Telework" as "illustrative, not verified" rather than just using it confidently. Why did that hedge matter, concretely?</summary>
+      <div class="answer">
+        Because it turned out to be wrong, and the hedge is exactly what
+        kept that wrongness from being presented as fact anywhere in the
+        course before now. If Modules 2-3 had asserted "Telework" was a
+        real MeSH heading, this module's discovery that it isn't would be
+        a <em>correction</em> to earlier material — a crack in the course's
+        own claimed rigor. Because they said "not verified" instead, the
+        exact same discovery is simply the payoff of a claim those modules
+        never made. Precise hedging isn't caution for its own sake — it's
+        what makes it possible to be wrong about a detail without being
+        wrong about what you said.
+      </div>
+    </details>
+  </div>
+
+  <h2><span class="section-num">08</span>There Are No Dumb Questions</h2>
+  <div class="qa-entry">
+    <div class="q">Why not just use Crossref, since Module 3 already models its exact JSON shape?</div>
+    <div class="a">Because Crossref doesn't actually search on our boolean query — it does relevance-ranked keyword search and ignores the AND/OR/quote structure. Using it here would make this module's core claim (a boolean query gets honored by a live system) false while looking like it succeeded. Module 3's Crossref parser isn't wasted, though — it's exactly what you'd use if you were pulling metadata for a single already-known DOI from Crossref, a genuinely common task.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">Couldn't <code>verify_mesh_term()</code> have just been run once, offline, and the correct term hardcoded from the start?</div>
+    <div class="a">That's exactly what should happen in a real review's workflow — you verify controlled-vocabulary terms once, early, against the live database, then use the confirmed term from then on. This module builds that verification step as reusable code specifically so it's not a one-off manual lookup a reviewer does and forgets, but a checkable, repeatable part of the pipeline.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">Is it a problem that this module's output isn't reproducible?</div>
+    <div class="a">Not a defect — a real property of live data that every subsequent module has to handle honestly. Real systematic reviews record the exact date a search was run for exactly this reason: "905 results" is only meaningful alongside "as of 2026-07-27." Module 7's PRISMA Flow Tracker will formalize logging this kind of provenance.</div>
+  </div>
+
+  <h2><span class="section-num">09</span>What's Next</h2>
+  <p>One source, one search. Module 5 runs multiple sources' worth of
+  results through the same <code>Record</code> pipeline and merges them
+  into a single corpus — without losing track of which source each record
+  came from.</p>
+
+  <div class="module-footer-nav">
+    <div class="prev"><a href="../03_bibliographic_record_model/tutorial.html">← Module 3: Bibliographic Record Model</a></div>
+    <div class="next"><a href="../05_multi_source_aggregator/tutorial.html">Module 5: Multi-Source Aggregator →</a></div>
+  </div>
+</div>
+</body>
+</html>
