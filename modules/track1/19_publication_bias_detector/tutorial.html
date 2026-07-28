@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Module 19: Publication Bias Detector</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+<style>:root{--accent:#4f8f9f;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Module 19 — Track 1: Core Engine</span>Publication Bias Detector</h1>
+
+  <h2><span class="section-num">00</span>Before You Start</h2>
+  <p>Finished <a href="../17_meta_analysis_engine/tutorial.html">Module 17</a> —
+  this module checks the same pooled result for a problem meta-analysis
+  alone can't see: whether the included studies are a biased sample of all
+  the evidence that actually exists.</p>
+
+  <h2><span class="section-num">01</span>The Big Analogy</h2>
+  <div class="analogy-box">
+    <span class="label">The empty side of the photograph</span>
+    Imagine a class photo where students are naturally scattered by height
+    — tall ones spread wide at the back, short ones clustered tight at the
+    front, roughly symmetric left to right. Now imagine one side of the
+    front row is conspicuously empty. Not because those students don't
+    exist — because the shortest students who would have stood on that
+    side, for whatever reason, aren't in the photo at all.
+    <br><br>
+    A funnel plot is that class photo: precise (large) studies naturally
+    cluster tight near the top, imprecise (small) studies naturally
+    scatter wide near the bottom, symmetric around the true effect if
+    nothing's been left out. Publication bias is the empty side of the
+    front row — small studies with null or unfavorable results that never
+    got published, and so were never available to be included at all.
+    <code>render_funnel_plot()</code> draws the photo. <code>eggers_test()</code>
+    is the statistical version of noticing the empty side and asking
+    whether it's really empty, or just looks that way by chance.
+  </div>
+
+  <h2><span class="section-num">02</span>What Happens, Step by Step</h2>
+  <ol class="checklist">
+    <li><code>eggers_test()</code> regresses each study's standardized effect (<code>y/se</code>) against its precision (<code>1/se</code>) — Egger's actual published regression specification</li>
+    <li>The regression's intercept is the test statistic: zero means no detected asymmetry, a large intercept (relative to its own standard error) means the funnel looks lopsided</li>
+    <li>The intercept's t-statistic is compared against a critical value for the regression's degrees of freedom (<code>n - 2</code>) to decide significance</li>
+    <li><code>render_funnel_plot()</code> draws every study's (effect, SE) point, a vertical line at the pooled estimate, and dashed lines marking the pseudo-95%-CI funnel around it</li>
+    <li>The y-axis is inverted — precise studies plot near the top, imprecise studies scatter wider near the bottom, matching the field-standard funnel shape</li>
+  </ol>
+
+  <h2><span class="section-num">03</span>A Map of the State</h2>
+  <p>The image below is this module's actual, unedited output.</p>
+  <div class="diagram-box">
+    <img src="funnel_plot_demo.png" alt="Funnel plot of five studies, showing visible left-right asymmetry around the pooled estimate line" style="max-width:100%; border-radius:6px;">
+    <p style="text-align:center; color:var(--text-dim); font-size:0.85rem;">Real output: Studies A, B, C cluster right of the pooled line; D and E sit left — visible asymmetry, though not statistically significant at n=5.</p>
+  </div>
+  <pre style="border:none; background:none; padding:0; margin-top:1em;"><code>eggers_test(effects)
+        │
+        ▼
+xs = [1/se for each study]     (precision)
+ys = [y/se for each study]     (standardized effect)
+        │
+        ▼  fit: ys = intercept + slope * xs
+intercept = -5.645   se_intercept = 15.034
+t = intercept / se_intercept = -0.375
+df = 5 studies - 2 = 3
+        │
+        ▼
+|t| = 0.375  vs.  t_critical(df=3) = 3.182
+0.375 < 3.182  ->  NOT significant at p&lt;0.05
+        │
+        ▼
+(explicit caveat: only 5 studies — too few for this test to be
+ conclusive either way, per Cochrane Handbook guidance)</code></pre>
+
+  <h2><span class="section-num">04</span>The Code, Explained</h2>
+  <pre><code>xs = [1 / e.se for e in effects]           # precision
+ys = [e.y / e.se for e in effects]         # standardized effect
+
+x_mean, y_mean = sum(xs) / n, sum(ys) / n
+ss_xx = sum((x - x_mean) ** 2 for x in xs)
+ss_xy = sum((x - x_mean) * (y - y_mean) for x, y in zip(xs, ys))
+slope = ss_xy / ss_xx
+intercept = y_mean - slope * x_mean</code></pre>
+  <p>That <code>ss_xx</code> denominator is exactly what broke during this
+  module's own development — see the Brain Exercise.</p>
+
+  <h2><span class="section-num">05</span>Limits / What You Cannot Do Yet</h2>
+  <div class="compare-grid">
+    <div class="compare-col cant">
+      <h4>Can't do yet</h4>
+      <ul>
+        <li>Draw a statistically sound conclusion from fewer than ~10 studies — the test's own power is too low, stated explicitly in the demo's own output</li>
+        <li>Distinguish publication bias from other causes of funnel asymmetry (true heterogeneity, chance) — Egger's test detects asymmetry, not its cause</li>
+        <li>Run at all with fewer than 3 studies, or with studies that all share identical precision — both are real, checked failure modes</li>
+      </ul>
+    </div>
+    <div class="compare-col can">
+      <h4>Can do</h4>
+      <ul>
+        <li>Compute Egger's actual published regression correctly, verified against its real mathematical requirements</li>
+        <li>Render a real, field-standard funnel plot from real pooled data</li>
+        <li>Report a result honestly alongside the specific reason it shouldn't be over-interpreted</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2><span class="section-num">06</span>Run It</h2>
+  <pre><code>python publication_bias.py</code></pre>
+  <p>Expected output (deterministic, no network involved):</p>
+  <pre><code>All self-checks passed.
+
+Egger's test
+  intercept = -5.645  SE = 15.034
+  t = -0.375  df = 3
+  significant asymmetry at p<0.05? False
+
+  CAVEAT (real, not boilerplate): this test was run on only 5 studies.
+  The Cochrane Handbook recommends against interpreting funnel-plot
+  asymmetry tests with fewer than ~10 studies — with this few studies,
+  the test has very low power to detect real asymmetry either way.
+  This demo proves the MECHANISM works, not that 5 studies is enough
+  evidence to draw a real conclusion about publication bias.
+
+Funnel plot saved: funnel_plot_demo.png, 40992 bytes, valid PNG header: True</code></pre>
+
+  <h2><span class="section-num">07</span>Brain Exercise</h2>
+  <div class="brain-exercise">
+    <details>
+      <summary>This module's first version of its own self-checks crashed with a real `ZeroDivisionError`. What caused it, and what does that failure actually teach?</summary>
+      <div class="answer">
+        The original test data gave all four studies the exact same
+        standard error. `xs = [1/se for e in effects]` was therefore
+        identical for every study — zero variance in the regression's
+        independent variable, making <code>ss_xx</code> (the sum of
+        squared deviations from the mean) exactly zero, and
+        <code>slope = ss_xy / ss_xx</code> a division by zero. This isn't
+        an implementation bug to patch defensively — it's a genuine,
+        correct mathematical fact: you cannot fit a regression line
+        against a predictor that never varies, because there's no
+        information in the data about how the outcome changes as the
+        predictor changes. The fix wasn't error-handling code; it was
+        recognizing the test data itself was unrealistic (real studies
+        essentially never share an identical SE) and using varied,
+        more realistic SEs instead.
+      </div>
+    </details>
+  </div>
+
+  <h2><span class="section-num">08</span>There Are No Dumb Questions</h2>
+  <div class="qa-entry">
+    <div class="q">If the funnel plot visually looks asymmetric, why does the module still say "not significant"?</div>
+    <div class="a">Because visual asymmetry and statistically significant asymmetry are different claims. With only 5 data points, a regression's intercept can look meaningfully off-center just from ordinary sampling variation — the t-test exists precisely to ask "is this asymmetry bigger than chance alone would produce," and with this little data, the honest answer here is "we can't tell yet."</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">Even with enough studies and a significant Egger's test, does that prove publication bias specifically?</div>
+    <div class="a">No — this is stated directly in the Limits section. Funnel asymmetry can come from genuine heterogeneity (smaller studies might have been conducted in genuinely different populations), from chance, or from publication bias. A significant Egger's test is evidence worth investigating further, not a standalone proof of any one specific cause.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">Why does the funnel plot use the pooling-scale effect (e.g. log odds ratio) on the x-axis instead of the natural-scale odds ratio?</div>
+    <div class="a">Because the funnel shape's symmetry assumption relies on the sampling distribution being approximately normal — which is the log scale for ratio measures, the same reasoning Modules 16-18 already established. Plotting raw odds ratios directly would distort the funnel shape, since that scale isn't the one where the underlying statistics are actually symmetric.</div>
+  </div>
+
+  <h2><span class="section-num">09</span>What's Next</h2>
+  <p>Every synthesis artifact — evidence table, forest plot, funnel plot —
+  now exists as a separate piece. Module 20 compiles all of them, plus the
+  PRISMA diagram, into one complete review report: the final module of
+  Track 1's core engine.</p>
+
+  <div class="module-footer-nav">
+    <div class="prev"><a href="../18_forest_plot_renderer/tutorial.html">← Module 18: Forest Plot Renderer</a></div>
+    <div class="next"><a href="../20_review_report_compiler/tutorial.html">Module 20: Review Report Compiler →</a></div>
+  </div>
+</div>
+</body>
+</html>
