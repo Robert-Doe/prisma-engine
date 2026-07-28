@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Module 6: Deduplication Engine</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+<style>:root{--accent:#d1495b;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Module 6 — Track 1: Core Engine</span>Deduplication Engine</h1>
+
+  <div class="prereq-tags">
+    <span class="status-badge">Prerequisites:</span>
+    <a href="../../../prerequisites/prereq_bibliographic_metadata.html">Bibliographic Metadata & Identifiers</a>
+  </div>
+
+  <h2><span class="section-num">00</span>Before You Start</h2>
+  <p>Finished <a href="../05_multi_source_aggregator/tutorial.html">Module 5</a> —
+  this module exists specifically to clean up the duplicate risk that
+  module's tutorial admitted and deliberately left unsolved.</p>
+
+  <h2><span class="section-num">01</span>The Big Analogy</h2>
+  <div class="analogy-box">
+    <span class="label">DNA test vs. police sketch</span>
+    Two ways to confirm two crime-scene samples came from the same person.
+    A DNA match is definitive — if it matches, that's the same person,
+    full stop, regardless of what they were wearing or how the scene
+    looked different this time. A police sketch comparison is a judgment
+    call — a resemblance score, not a certainty — and a good detective
+    never treats "looks a lot like" as "is," they set a threshold for how
+    confident they need to be, and they write down exactly why they made
+    the call.
+    <br><br>
+    <code>normalize_doi()</code> comparison is the DNA test — cheap,
+    unambiguous, run first. <code>title_similarity()</code> is the sketch
+    comparison — probabilistic, run second, always logged with a score. And
+    just like a real detective, this module refuses to arrest a stranger
+    just because they resemble a suspect: two different papers with
+    similar-sounding titles are supposed to walk free.
+  </div>
+
+  <h2><span class="section-num">02</span>What Happens, Step by Step</h2>
+  <ol class="checklist">
+    <li><strong>Pass 1 (DOI):</strong> every record's DOI is normalized (lowercase, URL prefix stripped) and grouped — a second record with a normalized DOI already seen is marked a duplicate immediately, with <code>score=1.0</code></li>
+    <li><strong>Pass 2 (fuzzy title):</strong> among whatever survives Pass 1, every remaining pair is compared with <code>title_similarity()</code> — normalized, punctuation-stripped titles run through <code>difflib.SequenceMatcher</code></li>
+    <li>A pair scoring at or above <code>title_threshold</code> (default <code>0.90</code>) — and, if <code>min_author_overlap</code> is set, sharing enough last names — gets flagged; the later-indexed record is marked a duplicate of the earlier one</li>
+    <li>Every single removal, from either pass, is recorded as a <code>DuplicateMatch</code> naming which record was kept, which was removed, why (<code>"exact_doi"</code> or <code>"fuzzy_title"</code>), and the exact score — nothing is ever silently dropped</li>
+  </ol>
+
+  <h2><span class="section-num">03</span>A Map of the State</h2>
+  <div class="diagram-box">
+    <pre style="border:none; background:none; padding:0;"><code>[0] "Remote Work and Productivity: A Longitudinal Study"  doi=10.1037/xyz
+[1] "Remote Work and Productivity - A Longitudinal Study"  doi=None
+[2] "Remote Work and Productivity: A Longitudinal Study"  doi=HTTPS://DOI.ORG/10.1037/XYZ
+[3] "Remote Work and Employee Wellbeing"                   doi=10.1037/abc
+[4] "Does Remote Work Affect Productivity?"                doi=10.1037/def
+        │
+        ▼  Pass 1: exact DOI
+normalize_doi(doi[0]) == normalize_doi(doi[2]) == "10.1037/xyz"
+   -> [2] marked duplicate of [0]   (reason=exact_doi, score=1.000)
+        │
+        ▼  Pass 2: fuzzy title, among survivors {0, 1, 3, 4}
+title_similarity([0], [1]) == 1.000  (>= 0.90 threshold)
+   -> [1] marked duplicate of [0]   (reason=fuzzy_title, score=1.000)
+title_similarity([3], [4]) == 0.612  (well below threshold — NOT flagged)
+        │
+        ▼
+unique_records = [ [0], [3], [4] ]   (3 of 5 survive)
+matches = [ (2->0, exact_doi, 1.0), (1->0, fuzzy_title, 1.0) ]</code></pre>
+  </div>
+
+  <h2><span class="section-num">04</span>The Code, Explained</h2>
+  <p>The full two-pass structure, in one place:</p>
+  <pre><code>def deduplicate(records, title_threshold=0.90, min_author_overlap=0.0):
+    removed = [False] * len(records)
+    matches = []
+
+    # Pass 1: exact DOI
+    doi_to_first_index = {}
+    for i, rec in enumerate(records):
+        norm = normalize_doi(rec.doi)
+        if norm is None:
+            continue
+        if norm in doi_to_first_index:
+            removed[i] = True
+            matches.append(DuplicateMatch(doi_to_first_index[norm], i, "exact_doi", 1.0))
+        else:
+            doi_to_first_index[norm] = i
+
+    # Pass 2: fuzzy title, only among Pass 1's survivors
+    survivors = [i for i in range(len(records)) if not removed[i]]
+    for a_pos, i in enumerate(survivors):
+        for j in survivors[a_pos + 1:]:
+            if removed[j]:
+                continue
+            score = title_similarity(records[i].title, records[j].title)
+            if score >= title_threshold:
+                removed[j] = True
+                matches.append(DuplicateMatch(i, j, "fuzzy_title", score))</code></pre>
+  <p>Notice Pass 2 only ever compares records still standing after Pass 1 —
+  the cheap, certain pass shrinks what the expensive, uncertain pass has
+  to work over.</p>
+
+  <h2><span class="section-num">05</span>Limits / What You Cannot Do Yet</h2>
+  <div class="compare-grid">
+    <div class="compare-col cant">
+      <h4>Can't do yet</h4>
+      <ul>
+        <li>Scale gracefully — Pass 2 is O(n²); fine for hundreds of records, a real problem at tens of thousands</li>
+        <li>Choose intelligently which duplicate copy to keep (always keeps the earlier index, regardless of which has more complete data)</li>
+        <li>Catch a duplicate whose title was heavily reworded between preprint and published version — similarity would score too low</li>
+      </ul>
+    </div>
+    <div class="compare-col can">
+      <h4>Can do</h4>
+      <ul>
+        <li>Catch exact duplicates instantly and unambiguously via DOI, regardless of case or URL formatting</li>
+        <li>Catch near-duplicates fuzzy title matching finds, with a logged, auditable confidence score</li>
+        <li>Correctly leave alone two different papers that merely sound similar</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2><span class="section-num">06</span>Run It</h2>
+  <pre><code>python dedup_engine.py</code></pre>
+  <p>Expected output (captured from an actual run — fully deterministic,
+  no network involved):</p>
+  <pre><code>All self-checks passed.
+
+Input corpus:
+  [0] 'Remote Work and Productivity: A Longitudinal Study'  doi=10.1037/xyz  authors=['Smith, Jane', 'Lee, Amrita']
+  [1] 'Remote Work and Productivity - A Longitudinal Study'  doi=None  authors=['Smith J', 'Lee A']
+  [2] 'Remote Work and Productivity: A Longitudinal Study'  doi=HTTPS://DOI.ORG/10.1037/XYZ  authors=['Smith, Jane', 'Lee, Amrita']
+  [3] 'Remote Work and Employee Wellbeing'  doi=10.1037/abc  authors=['Nguyen, Thi', 'Park, Soo']
+  [4] 'Does Remote Work Affect Productivity?'  doi=10.1037/def  authors=['Okoye, Chidi']
+
+======================================================================
+Matches found
+======================================================================
+  duplicate_index=2 -> kept_index=0  reason=exact_doi  score=1.000
+  duplicate_index=1 -> kept_index=0  reason=fuzzy_title  score=1.000
+
+Started with 5 records, 3 remain after dedup:
+  - 'Remote Work and Productivity: A Longitudinal Study'
+  - 'Remote Work and Employee Wellbeing'
+  - 'Does Remote Work Affect Productivity?'</code></pre>
+
+  <h2><span class="section-num">07</span>Brain Exercise</h2>
+  <div class="brain-exercise">
+    <details>
+      <summary>Record [1] (the no-DOI preprint copy) and Record [3] ("Employee Wellbeing") both lack an exact-DOI match to anything else. Why does one get caught by Pass 2 and the other doesn't?</summary>
+      <div class="answer">
+        Because Pass 2 doesn't ask "does this record lack a DOI" — it asks
+        "how similar is this record's title to every other surviving
+        record's title." Record [1]'s title scores <code>1.000</code>
+        against Record [0] after normalization (the only difference was a
+        colon vs. a dash). Record [3]'s title scores <code>0.732</code>
+        against its nearest neighbor — real, measured dissimilarity, not
+        an assumption. The presence or absence of a DOI only determines
+        which <em>pass</em> a record's fate gets decided in, never the
+        fuzzy-matching verdict itself.
+      </div>
+    </details>
+  </div>
+
+  <h2><span class="section-num">08</span>There Are No Dumb Questions</h2>
+  <div class="qa-entry">
+    <div class="q">Why is the threshold 0.90 and not something else?</div>
+    <div class="a">It's a convention, tuned against the specific test cases in this module's demo — high enough that "Employee Wellbeing" (0.732) stays safely below it, low enough that a punctuation-only title variant (1.000) clears it easily. A real review might tune this differently depending on how noisy its sources' titles tend to be; the point is that it's an explicit, visible parameter, not a hidden magic number.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">What happens if two completely different papers happen to share the exact same (wrong) DOI due to a data-entry error in the source?</div>
+    <div class="a">This module would merge them — it trusts DOI equality completely, by design, because DOIs are supposed to be globally unique identifiers. A source-level data error violating that guarantee is a real, if rare, risk this module doesn't defend against; if you suspect it, the <code>DuplicateMatch</code> audit trail is exactly what lets a human reviewer spot-check "kept_index=0, duplicate_index=2, reason=exact_doi" and catch the mistake.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">Could this module produce a false negative — miss a real duplicate?</div>
+    <div class="a">Yes, and the Limits section names one concretely: a paper whose title changed substantially between preprint and final publication would score too low on fuzzy title matching and slip through as two "different" records. No dedup algorithm at this level of sophistication catches everything — which is exactly why every decision this module makes is logged instead of hidden, so a human reviewer doing a final pass has a real audit trail to work from.</div>
+  </div>
+
+  <h2><span class="section-num">09</span>What's Next</h2>
+  <p>The corpus is now deduplicated — but nothing so far has counted or
+  logged <em>how many</em> records existed at each stage (identified,
+  deduplicated, screened). Module 7 builds the PRISMA Flow Tracker: the
+  stateful object that turns every module's output so far into the
+  auditable count trail a real systematic review is required to report.</p>
+
+  <div class="module-footer-nav">
+    <div class="prev"><a href="../05_multi_source_aggregator/tutorial.html">← Module 5: Multi-Source Aggregator</a></div>
+    <div class="next"><a href="../07_prisma_flow_tracker/tutorial.html">Module 7: PRISMA Flow Tracker →</a></div>
+  </div>
+</div>
+</body>
+</html>
