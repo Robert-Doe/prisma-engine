@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Concept Cluster: Deduplication & Identity Matching</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<style>:root{--accent:#3fa08f;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Concept Cluster 01</span>Deduplication & Identity Matching</h1>
+
+  <p>This isn't one module's topic — it's a question that recurs
+  throughout the entire course: <em>are these two things actually the same
+  thing?</em> Every time the answer matters, a different module had to
+  answer it a little differently, and comparing those answers side by side
+  reveals more than any single module's code motivates on its own.</p>
+
+  <h2><span class="section-num">01</span>The Big Analogy</h2>
+  <div class="analogy-box">
+    <span class="label">Every kind of ID check, in one lineup</span>
+    A passport check at a border is exact and unambiguous — the number
+    either matches the database or it doesn't. A witness picking a suspect
+    out of a lineup is comparing faces, which is fuzzier, needs a
+    confidence threshold, and can be wrong in both directions. A detective
+    noticing two unrelated case files both mention the same address is a
+    third kind of match entirely — not identity, but connection. This
+    course used all three, in different modules, for different reasons,
+    and never named them as the same underlying problem until now.
+  </div>
+
+  <h2><span class="section-num">02</span>Where This Shows Up Across the Course</h2>
+  <table>
+    <tr><th>Module</th><th>What needs matching</th><th>Method</th></tr>
+    <tr><td><a href="../../modules/track1/03_bibliographic_record_model/tutorial.html">Module 3</a></td><td>Same paper, three different export formats</td><td>Normalize every format into one canonical <code>Record</code> shape first — sidesteps matching by making the formats identical before comparison is ever needed</td></tr>
+    <tr><td><a href="../../modules/track1/06_deduplication_engine/tutorial.html">Module 6</a></td><td>Same paper, two different sources</td><td>Exact match on normalized DOI (Pass 1); fuzzy string similarity on normalized title, gated by author overlap (Pass 2)</td></tr>
+    <tr><td><a href="../../modules/track1/13_citation_snowballing_engine/tutorial.html">Module 13</a> / <a href="../../modules/track2/23_bibliometric_network_analyzer/tutorial.html">Module 23</a></td><td>A citation graph node's identity across two different APIs (Crossref, Semantic Scholar)</td><td>Reuses Module 6's exact <code>normalize_doi()</code> — same function, new context</td></tr>
+    <tr><td><a href="../../modules/track2/26_living_review_updater/tutorial.html">Module 26</a></td><td>"Have I already screened this record in a prior version?"</td><td>Reuses <code>normalize_doi()</code> again, persisted to disk between runs — identity matching stretched across time, not just across one run</td></tr>
+    <tr><td><a href="../../modules/track2/25_umbrella_review_aggregator/tutorial.html">Module 25</a></td><td>Whether two included reviews share primary studies</td><td>Plain string set overlap — <strong>does NOT reuse <code>normalize_doi()</code></strong>, a real, documented gap (see its DECISIONS.md and tutorial Q&A)</td></tr>
+  </table>
+
+  <h2><span class="section-num">03</span>The Pattern Underneath All of Them</h2>
+  <div class="diagram-box">
+    <pre style="border:none; background:none; padding:0;"><code>Exact matching (cheap, certain)          Fuzzy matching (expensive, probabilistic)
+────────────────────────────             ─────────────────────────────────────────
+Module 6 Pass 1: normalized DOI          Module 6 Pass 2: title similarity score
+Module 13/23/26: normalize_doi() reuse    (difflib.SequenceMatcher, thresholded)
+
+         Both share one discipline: NEVER apply the expensive/uncertain
+         method to something the cheap/certain method could already decide.
+         Module 6's two-pass ordering is the general shape; every reuse
+         of normalize_doi() elsewhere in the course is really reapplying
+         "prefer the cheap, certain check first" to a new situation.</code></pre>
+  </div>
+
+  <h2><span class="section-num">04</span>Why This Lives Here, Not Inside One Module</h2>
+  <p>No single module owns this idea. Module 6 is where the fullest
+  version of it (exact + fuzzy, two-pass) was built, but Module 3 sidesteps
+  the whole problem for one specific case (format normalization),
+  Modules 13/23/26 each reuse one small piece of Module 6 in a genuinely
+  new context, and Module 25's gap is only visible by comparing it against
+  the others. Reading only Module 6's tutorial would miss the pattern
+  entirely; reading only Module 25's would miss that it's even a gap.</p>
+
+  <h2><span class="section-num">05</span>Go Deeper</h2>
+  <ul class="checklist">
+    <li><a href="02_matching_algorithms_deepdive.html">Deep dive: matching algorithms beyond what this course implements</a></li>
+    <li><a href="03_failure_modes_deepdive.html">Deep dive: how identity matching fails, and what it costs when it does</a></li>
+  </ul>
+</div>
+</body>
+</html>

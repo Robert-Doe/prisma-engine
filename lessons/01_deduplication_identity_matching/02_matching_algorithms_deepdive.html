@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Deep Dive: Matching Algorithms Beyond This Course</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<style>:root{--accent:#3fa08f;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Concept Cluster 01 — Deep Dive 1</span>Matching Algorithms Beyond This Course</h1>
+
+  <p>Module 6 uses <code>difflib.SequenceMatcher</code> for fuzzy title
+  matching — a real, working, dependency-light choice, and explicitly not
+  the only or most sophisticated option. Here's the landscape it sits in.</p>
+
+  <h2><span class="section-num">01</span>String-Distance Family</h2>
+  <table>
+    <tr><th>Algorithm</th><th>What it measures</th><th>Where it's actually used</th></tr>
+    <tr><td>Levenshtein (edit) distance</td><td>Minimum single-character insertions/deletions/substitutions to turn one string into another</td><td>Spell-checkers, "did you mean" suggestions, general string dedup</td></tr>
+    <tr><td>Jaro-Winkler</td><td>Similarity weighted toward matching prefixes</td><td>Name matching specifically — census record linkage, library catalog author disambiguation, because names commonly share prefixes ("Johnson"/"Johnston") and this metric rewards that</td></tr>
+    <tr><td>Gestalt pattern matching (what Module 6 uses via <code>difflib</code>)</td><td>Ratio of matching characters found via longest common contiguous subsequences</td><td>General-purpose text diffing (this is the same family of algorithm behind Python's own <code>diff</code>-style tools)</td></tr>
+  </table>
+
+  <h2><span class="section-num">02</span>Beyond Character-Level Comparison</h2>
+  <p>All of Module 6's matching operates on characters. Real large-scale
+  deduplication systems often move up a level:</p>
+  <ul>
+    <li><strong>TF-IDF + cosine similarity</strong> — represents each title as a vector of weighted word-importance scores, then measures the angle between two titles' vectors. Catches word-order-independent similarity ("Fuzzing Directed by Control Flow" vs "Control-Flow-Directed Fuzzing") that character-level matching would score lower.</li>
+    <li><strong>Embedding-based / semantic similarity</strong> — a modern approach using a trained language model to represent each title's <em>meaning</em> as a vector, catching genuine paraphrases with almost no shared vocabulary at all. This is powerful and increasingly common in real bibliographic deduplication tools, and explicitly out of this course's scope — see the ROADMAP's stated boundary against ML-based classifiers.</li>
+  </ul>
+
+  <h2><span class="section-num">03</span>The Scaling Problem Module 6 Doesn't Solve: Blocking</h2>
+  <p>Module 6's Pass 2 is O(n²) — every surviving record compared against
+  every other. Fine for the handful of records in this course's demos;
+  genuinely unworkable for a real systematic review screening tens of
+  thousands of records, where n² becomes hundreds of millions of
+  comparisons.</p>
+  <p>Real large-scale deduplication systems (library catalogs, patent
+  offices, national bibliographic databases) solve this with
+  <strong>blocking</strong>: group records into buckets by some cheap key
+  first (e.g. first three words of a normalized title, or publication
+  year + first author's last name), and only run expensive fuzzy
+  comparison <em>within</em> each bucket. Two records that could never
+  plausibly be duplicates (wildly different titles, different decades)
+  never get compared at all. This is the same "cheap check first, expensive
+  check only when needed" discipline Module 6's two-pass design already
+  uses — blocking is that same idea, one level further, applied to make
+  the expensive pass itself tractable at scale.</p>
+
+  <h2><span class="section-num">04</span>Real Systems Doing This Today</h2>
+  <ul class="checklist">
+    <li><strong>OCLC WorldCat</strong> clusters millions of library catalog records into FRBR "works" using a mix of exact identifier matching and title/author heuristics not unlike a much larger-scale version of Module 6's approach.</li>
+    <li><strong>Crossref</strong> itself runs deduplication and similarity-checking as part of accepting new DOI registrations from publishers.</li>
+    <li><strong>Reference managers</strong> (Zotero, EndNote) ship built-in "find duplicates" tools using DOI-first, fuzzy-title-second logic — the exact two-pass shape Module 6 implements, in production software researchers use daily.</li>
+  </ul>
+
+  <p style="margin-top:2em;"><a href="01_explainer.html">← Back to the cluster overview</a> · <a href="03_failure_modes_deepdive.html">Next: failure modes →</a></p>
+</div>
+</body>
+</html>

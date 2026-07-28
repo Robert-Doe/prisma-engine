@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Deep Dive: How Identity Matching Fails</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<style>:root{--accent:#3fa08f;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Concept Cluster 01 — Deep Dive 2</span>How Identity Matching Fails, and What It Costs</h1>
+
+  <h2><span class="section-num">01</span>Two Directions of Failure</h2>
+  <div class="compare-grid">
+    <div class="compare-col cant">
+      <h4>False positive: over-merging</h4>
+      <p>Two genuinely different records get treated as duplicates, and
+      one is silently discarded. Module 6's tutorial demonstrates this is
+      exactly why the fuzzy-matching threshold and author-overlap gate
+      exist — a real, distinct study ("Remote Work and Employee
+      Wellbeing") sitting too close in title-similarity space to another
+      ("...Employee Productivity") must NOT be merged away.</p>
+    </div>
+    <div class="compare-col cant">
+      <h4>False negative: under-merging</h4>
+      <p>Two records of the same real paper survive as separate entries.
+      Module 25's umbrella review shows the downstream cost concretely: a
+      naive sum of "10 primary studies" across overlapping reviews was
+      really 8 unique studies — every uncaught duplicate inflates how much
+      independent evidence appears to exist.</p>
+    </div>
+  </div>
+
+  <h2><span class="section-num">02</span>A Real Integrity Implication: Duplicate and Near-Duplicate Publication</h2>
+  <p>This isn't only an algorithmic curiosity. Research integrity
+  literature documents real cases of <strong>duplicate publication</strong>
+  (the same study published more than once, sometimes in different
+  venues or slightly reworded) and, more seriously, coordinated
+  <strong>paper mills</strong> producing large volumes of formulaic,
+  templated papers with just enough surface variation to evade naive
+  duplicate detection. A systematic review that fails to catch duplicate
+  or near-duplicate publications of the same underlying study risks
+  double-counting that study's effect in a meta-analysis — silently
+  giving one real result more statistical weight than it should have,
+  which is precisely the mechanism Module 17's forest plot visualizes as
+  "weight" in the first place. Robust deduplication is not just a data-
+  hygiene nicety; it's part of what keeps a meta-analysis's pooled
+  estimate honest.</p>
+
+  <h2><span class="section-num">03</span>Performance Tradeoffs, Concretely</h2>
+  <table>
+    <tr><th>Approach</th><th>Cost</th><th>When it's the right call</th></tr>
+    <tr><td>Exact match only (DOI)</td><td>O(1) per record (hash lookup)</td><td>Whenever a reliable identifier exists — always try this first, as Module 6 does</td></tr>
+    <tr><td>Unblocked fuzzy match (Module 6's Pass 2)</td><td>O(n²) comparisons</td><td>Small survivor sets after exact matching already did most of the work — fine for hundreds of records, not tens of thousands</td></tr>
+    <tr><td>Blocked fuzzy match</td><td>O(n × average block size), much less than O(n²) with a well-chosen blocking key</td><td>Any real-scale systematic review — Cochrane-scale reviews routinely screen 10,000+ records</td></tr>
+    <tr><td>Embedding-based similarity + approximate nearest-neighbor search (e.g. locality-sensitive hashing)</td><td>Higher per-record cost, but sub-linear search at scale</td><td>Very large corpora where even blocking isn't selective enough, or where paraphrase-level duplicates matter</td></tr>
+  </table>
+
+  <div class="tip-box">
+    <strong>The throughline:</strong> every step up this table trades
+    implementation complexity for the ability to handle more records
+    without the comparison cost exploding. Module 6 deliberately stops at
+    the simplest tier that's still correct for this course's scale — see
+    its own DECISIONS.md for why that's a stated, not accidental, choice.
+  </div>
+
+  <p style="margin-top:2em;"><a href="01_explainer.html">← Back to the cluster overview</a> · <a href="02_matching_algorithms_deepdive.html">← Matching algorithms</a></p>
+</div>
+</body>
+</html>
