@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Module 7: PRISMA Flow Tracker</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+<style>:root{--accent:#c99a2e;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Module 7 — Track 1: Core Engine</span>PRISMA Flow Tracker</h1>
+
+  <div class="prereq-tags">
+    <span class="status-badge">Prerequisites:</span>
+    <a href="../../../prerequisites/prereq_prisma_standard.html">The PRISMA Reporting Standard</a>
+  </div>
+
+  <div class="warning-box">Needs internet access — the demo reuses Modules 4-6's real, live calls.</div>
+
+  <h2><span class="section-num">00</span>Before You Start</h2>
+  <p>Finished Modules 4, 5, and 6 — this module's demo chains all three
+  together for real, and Prerequisite 7 explains why the flow diagram this
+  module feeds exists at all.</p>
+
+  <h2><span class="section-num">01</span>The Big Analogy</h2>
+  <div class="analogy-box">
+    <span class="label">Double-entry bookkeeping</span>
+    A bookkeeper doesn't just write down numbers — every entry has to
+    balance against another entry, and at the end of the period, the books
+    either balance or they don't. If they don't, that's not a footnote,
+    it's a stop-everything signal that money went somewhere unaccounted
+    for. Nobody trusts a ledger that never checks its own arithmetic.
+    <br><br>
+    <code>PrismaFlowTracker</code> is that ledger, and
+    <code>validate_conservation()</code> is the balance check. Every
+    record that enters a stage has to come out the other side as either
+    "included" or "excluded, for this specific named reason" — never just
+    vanish. If the numbers don't add up, <code>FlowConservationError</code>
+    is the accounting equivalent of the books not balancing.
+  </div>
+
+  <h2><span class="section-num">02</span>What Happens, Step by Step</h2>
+  <ol class="checklist">
+    <li><code>log_identification(source, count)</code> records how many records came from each source — called once per source, e.g. once for PubMed, once for arXiv</li>
+    <li><code>log_deduplication(removed_count)</code> records how many were removed as duplicates</li>
+    <li><code>log_screening(excluded_by_reason, included_count)</code> records the title/abstract screening outcome — a dict of exclusion reasons to counts, plus how many passed</li>
+    <li><code>log_eligibility(...)</code> records the same shape for the full-text stage</li>
+    <li><code>validate_conservation()</code> checks, stage by stage, that inputs equal outputs — raising <code>FlowConservationError</code> naming the exact stage and the exact mismatch if they don't</li>
+  </ol>
+
+  <h2><span class="section-num">03</span>A Map of the State</h2>
+  <div class="diagram-box">
+    <pre style="border:none; background:none; padding:0;"><code>log_identification("PubMed", 5)   ─┐
+log_identification("arXiv", 5)    ─┴─►  total_identified() = 10
+        │
+log_deduplication(0)  ─────────────►  after_dedup() = 10 - 0 = 10
+        │
+log_screening({"wrong population": 3, "wrong study design": 2},
+               included_count=5)
+        │
+        ▼
+validate_conservation():
+  expected = after_dedup() = 10
+  actual   = screening_included + total_screening_excluded()
+           = 5 + (3 + 2) = 10
+  10 == 10   -> OK, no error
+
+  (deliberately broken example: 10 identified, 0 deduped, but only
+   3 excluded + 4 included = 7 logged at screening)
+  expected = 10, actual = 7   -> FlowConservationError raised</code></pre>
+  </div>
+
+  <h2><span class="section-num">04</span>The Code, Explained</h2>
+  <p>The check that does all the actual work:</p>
+  <pre><code>def validate_conservation(self) -> None:
+    if self.screening_included is not None:
+        expected = self.after_dedup()
+        actual = self.screening_included + self.total_screening_excluded()
+        if actual != expected:
+            raise FlowConservationError(
+                f"screening stage: {expected} entered but {actual} accounted for "
+                f"({self.screening_included} included + {self.total_screening_excluded()} excluded)"
+            )</code></pre>
+  <p>Notice this isn't checking that the numbers <em>look reasonable</em> —
+  it's checking that they're <em>arithmetically consistent with the stage
+  before them</em>. A tracker that never ran this check could have any
+  numbers typed into it, correct or not, and would never know the
+  difference.</p>
+
+  <h2><span class="section-num">05</span>Limits / What You Cannot Do Yet</h2>
+  <div class="compare-grid">
+    <div class="compare-col cant">
+      <h4>Can't do yet</h4>
+      <ul>
+        <li>Render an actual PRISMA flow diagram image — that's Module 12</li>
+        <li>Track individual records' fates by ID, only aggregate counts per stage</li>
+        <li>Validate that a reason string is a "real" PRISMA-approved exclusion category — any string is accepted</li>
+      </ul>
+    </div>
+    <div class="compare-col can">
+      <h4>Can do</h4>
+      <ul>
+        <li>Prove, arithmetically, that no record disappeared unaccounted for between stages</li>
+        <li>Catch a real logging mistake immediately, with the exact stage and mismatch named</li>
+        <li>Produce a complete, real PRISMA-shaped count summary from actual (not simulated) upstream module output</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2><span class="section-num">06</span>Run It</h2>
+  <pre><code>python flow_tracker.py</code></pre>
+  <p>Real output captured 2026-07-27 (your identification counts will
+  differ — live data):</p>
+  <pre><code>All self-checks passed.
+
+[... Stage 1-2 output reusing Modules 4-6, real counts ...]
+
+======================================================================
+Validating conservation...
+======================================================================
+  OK — every stage's counts are fully accounted for.
+
+PRISMA Flow Summary
+========================================
+  Identified from PubMed: 5
+  Identified from arXiv: 5
+  Total identified: 10
+  Duplicates removed: 0
+  Records screened (after dedup): 10
+    Excluded at screening (wrong population): 3
+    Excluded at screening (wrong study design): 2
+  Passed screening: 5
+
+======================================================================
+Now deliberately breaking conservation to show it gets caught
+======================================================================
+  Raised as expected: screening stage: 8 entered but 7 accounted for (4 included + 3 excluded)</code></pre>
+
+  <h2><span class="section-num">07</span>Brain Exercise</h2>
+  <div class="brain-exercise">
+    <details>
+      <summary>Why does <code>validate_conservation()</code> check the eligibility stage against <code>screening_included</code>, not against <code>after_dedup()</code>?</summary>
+      <div class="answer">
+        Because the eligibility (full-text) stage only ever looks at
+        records that already survived screening — that's literally what
+        "passed screening" means. Checking eligibility's total against
+        <code>after_dedup()</code> instead would silently ignore
+        everything screening removed, and a real mismatch at the
+        eligibility stage could hide behind an unrelated, already-explained
+        gap from an earlier stage. Each stage's conservation check has to
+        anchor to the specific count that stage actually received as input.
+      </div>
+    </details>
+  </div>
+
+  <h2><span class="section-num">08</span>There Are No Dumb Questions</h2>
+  <div class="qa-entry">
+    <div class="q">What stops someone from just logging fake numbers that happen to balance?</div>
+    <div class="a">Nothing in this module — conservation checking proves internal consistency, not truthfulness. A tracker fed deliberately fabricated but self-consistent numbers would pass every check here. That's a real, honest limit: this module catches bookkeeping errors, not fraud. Trustworthiness of the underlying counts still depends on the modules that actually produced them being run for real, which is exactly why this demo reuses Modules 4-6's live output instead of hand-typing numbers.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">Why is screening simulated here instead of skipped entirely until Module 8 exists?</div>
+    <div class="a">Because this module's whole job is to prove the <em>tracking and validation mechanism</em> works across a full multi-stage flow — identification through eligibility — not just a two-stage toy case. Simulating the not-yet-built stages, clearly labeled as simulated, lets the demo exercise the complete conservation-checking logic honestly.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">Could two different reasons for the same stage get accidentally merged?</div>
+    <div class="a">No — <code>screening_excluded</code> is a dict keyed by the exact reason string, so <code>"wrong population"</code> and <code>"Wrong Population"</code> would be tracked as two separate reasons (case-sensitive). That's a real, minor gotcha worth knowing about if you're logging reasons from multiple places in a larger pipeline.</div>
+  </div>
+
+  <h2><span class="section-num">09</span>What's Next</h2>
+  <p>This module can track a screening stage's outcome — but nothing yet
+  actually <em>makes</em> the screening decisions themselves. Module 8
+  builds the real title/abstract screening engine: applying eligibility
+  criteria to each record and producing exactly the
+  <code>excluded_by_reason</code> data this module has so far only
+  simulated.</p>
+
+  <div class="module-footer-nav">
+    <div class="prev"><a href="../06_deduplication_engine/tutorial.html">← Module 6: Deduplication Engine</a></div>
+    <div class="next"><a href="../08_screening_engine/tutorial.html">Module 8: Title/Abstract Screening Engine →</a></div>
+  </div>
+</div>
+</body>
+</html>
