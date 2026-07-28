@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Module 28: Positioning & Gap-Statement Generator</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+<style>:root{--accent:#5a3f8a;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Module 28 — Track 2: Applied Layer</span>Positioning & Gap-Statement Generator</h1>
+
+  <div class="prereq-tags">
+    <span class="status-badge">Depends on:</span>
+    <a href="../27_related_work_comparison_matrix/tutorial.html">Module 27 (Track 2)</a>
+    <a href="../../track1/03_bibliographic_record_model/tutorial.html">Module 3 (Track 1)</a>
+  </div>
+
+  <div class="warning-box">Needs internet access — reuses Module 27's real, live search.</div>
+
+  <h2><span class="section-num">00</span>Before You Start</h2>
+  <p>Finished <a href="../27_related_work_comparison_matrix/tutorial.html">Module 27</a> —
+  this module takes that exact comparison matrix and derives an argument
+  from it.</p>
+
+  <h2><span class="section-num">01</span>The Big Analogy</h2>
+  <div class="analogy-box">
+    <span class="label">The patent examiner's prior-art search</span>
+    A patent examiner doesn't reject a new invention just because parts of
+    it resemble existing patents — plenty of inventions combine known
+    ideas in a new way. What actually blocks a patent is a single prior
+    patent (or a combination the examiner can construct) that already
+    covers every claim at once. An examiner who found "patent A covers
+    claims 1 and 2, but not 3" hasn't found prior art that blocks the
+    application — they've found a near-miss worth citing in the
+    application's own "related work" discussion, to show the inventors
+    knew about it and are still claiming something new.
+    <br><br>
+    <code>find_satisfying_papers()</code> is the examiner's search for a
+    single prior work that blocks the whole claim.
+    <code>find_near_misses()</code> is the examiner's list of "close, but
+    not quite" prior art, each with the specific claim it doesn't cover.
+  </div>
+
+  <h2><span class="section-num">02</span>What Happens, Step by Step</h2>
+  <ol class="checklist">
+    <li>A <code>GapCriteria</code> states every dimension a hypothetical new contribution would need — e.g. detection + targets Spectre + targets Meltdown + non-ML</li>
+    <li><code>find_satisfying_papers()</code> checks the real comparison matrix for any paper matching ALL required dimensions at once — the full conjunction, not a majority</li>
+    <li>If one exists, that's not a gap — the function says so directly, naming the paper</li>
+    <li>If none exists, <code>find_near_misses()</code> finds every paper satisfying SOME dimensions, and reports exactly which ones it's missing</li>
+    <li><code>verify_claim_grounded()</code> re-derives each near-miss's claimed-missing dimension directly from that paper's real title/abstract text, right now — not trusted from the table alone</li>
+  </ol>
+
+  <h2><span class="section-num">03</span>A Map of the State</h2>
+  <div class="diagram-box">
+    <pre style="border:none; background:none; padding:0;"><code>GapCriteria: {approach_type: "detection", targets_spectre: True,
+              targets_meltdown: True, ml_based: False}
+        │
+        ▼  find_satisfying_papers() over the real 7-paper matrix
+        │     -> none match all four simultaneously
+        ▼  find_near_misses()
+"Real time Detection of Spectre and Meltdown... Using Machine Learning"
+   -> missing: ['ml_based']   (it IS ML-based; criteria wants non-ML)
+"BranchScope"
+   -> missing: ['approach_type', 'targets_spectre', 'targets_meltdown']
+   (its abstract had no text to classify at all — see Module 27)
+        │
+        ▼  verify_claim_grounded(record, "ml_based", False) for the first paper
+re-runs extract_dimensions() on the record's REAL text, right now
+   -> confirms ml_based is actually True in the real text, so the
+      "missing: ml_based" claim is genuinely grounded, not assumed</code></pre>
+  </div>
+
+  <h2><span class="section-num">04</span>The Code, Explained</h2>
+  <pre><code>def find_satisfying_papers(table, criteria):
+    return [
+        row for row in table.to_dict_rows()
+        if all(row.get(k) == v for k, v in criteria.required_dimensions.items())
+    ]</code></pre>
+  <p>That <code>all(...)</code> is the entire logical core of a real
+  novelty claim — every required dimension, together, in one paper. Change
+  it to <code>any(...)</code> and the module would be answering a much
+  weaker, much less useful question.</p>
+
+  <h2><span class="section-num">05</span>Limits / What You Cannot Do Yet</h2>
+  <div class="compare-grid">
+    <div class="compare-col cant">
+      <h4>Can't do yet</h4>
+      <ul>
+        <li>Write the actual prose paragraph a paper's Related Work section would contain — only the structured claim and its grounding</li>
+        <li>Detect negated claims correctly — "without machine learning" and "using machine learning" both match the same substring check (see DECISIONS.md for a real bug this caused during development)</li>
+        <li>Judge whether a discovered gap is actually worth publishing about — it only checks combinatorial coverage, not significance</li>
+      </ul>
+    </div>
+    <div class="compare-col can">
+      <h4>Can do</h4>
+      <ul>
+        <li>Mechanically and correctly determine whether a specific combination of dimensions is covered by existing real work</li>
+        <li>Name exactly which dimension each close prior work is missing, not just that it's "different"</li>
+        <li>Re-verify a grounding claim against a paper's actual text at the moment it's cited, not just trust an earlier extraction</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2><span class="section-num">06</span>Run It</h2>
+  <pre><code>python gap_statement.py</code></pre>
+  <p>Real output captured 2026-07-28 (your live corpus will differ):</p>
+  <pre><code>All self-checks passed (no network required for these).
+
+Real corpus: 7 unique papers (same as Module 27)
+
+Gap statement for "A non-ML detection technique covering both Spectre and Meltdown":
+  No existing paper in this corpus satisfies all of: {'approach_type': 'detection', 'targets_spectre': True, 'targets_meltdown': True, 'ml_based': False}
+  Closest prior work, and exactly what each is missing:
+    - 'Real time Detection of Spectre and Meltdown Attacks Using Machine Learning' — missing: ['ml_based']  [grounded in its real abstract text (re-checked, not assumed)]
+    - 'Store-to-Leak Forwarding: Leaking Data on Meltdown-resistant CPUs (Updated and Extended Version)' — missing: ['approach_type']  [grounded in its real abstract text (re-checked, not assumed)]
+    ... (5 more, each with its own specific missing dimension) ...
+
+A criteria set that IS already satisfied (sanity check)
+NOT A GAP: existing work already satisfies every required dimension: ['Store-to-Leak Forwarding: Leaking Data on Meltdown-resistant CPUs (Updated and Extended Version)', 'SafeSpec: Banishing the Spectre of a Meltdown with Leakage-Free Speculation', 'Pre-cache: A Microarchitectural Solution to prevent Meltdown and Spectre']</code></pre>
+
+  <h2><span class="section-num">07</span>Brain Exercise</h2>
+  <div class="brain-exercise">
+    <details>
+      <summary>This module's own development hit the exact same negation-blindness bug Module 24 already documented — in a totally different function, for a totally different purpose. What does that recurrence actually tell you?</summary>
+      <div class="answer">
+        That the weakness isn't a quirk of Module 24's specific negation
+        word list — it's a structural property of any heuristic that
+        decides meaning by checking whether a substring is present,
+        without considering what surrounds it. Any new module in this
+        course (or beyond it) that classifies text by keyword presence
+        alone inherits this same risk, whether or not its author has ever
+        read Module 24's tutorial. Recognizing "this is the same class of
+        problem as before," rather than treating each occurrence as a
+        one-off surprise, is what lets you anticipate it in the next
+        heuristic you write instead of discovering it the hard way again.
+      </div>
+    </details>
+  </div>
+
+  <h2><span class="section-num">08</span>There Are No Dumb Questions</h2>
+  <div class="qa-entry">
+    <div class="q">Why does the module cite ALL 7 papers as near-misses instead of just the closest one or two?</div>
+    <div class="a">Because a real Related Work section is expected to demonstrate awareness of the field, not just the single most similar paper — omitting a relevant near-miss risks a reviewer pointing out "you didn't cite X," a real, common rejection reason at venues like USENIX. Showing every near-miss, each with its specific gap, is the safer and more honest default.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">What would happen if `GapCriteria` required a dimension that doesn't exist in the schema, like `"performance_overhead"`?</div>
+    <div class="a">`row.get(k)` would return `None` for every row (the key never exists in any row's dict), so `None == v` would be `False` for any real required value — every paper would be reported as "missing" that dimension, which happens to be the technically correct (if uninformative) answer, rather than a crash.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">Is `verify_claim_grounded()` actually catching the negation-blindness bug it's meant to guard against?</div>
+    <div class="a">No — and that's worth being honest about, per DECISIONS.md. It re-runs the exact same `extract_dimensions()` function, so a systematic error in that function (like the negation-substring issue) would reproduce identically on re-check, not get caught. What it does catch is drift — a table value that's stale or was corrupted after extraction — a real but narrower guarantee than "this claim is semantically correct."</div>
+  </div>
+
+  <h2><span class="section-num">09</span>What's Next</h2>
+  <p>Two applied genres remain, both for a total beginner rather than a
+  systems researcher: Module 29 builds the synthesis matrix — the
+  foundational tool for turning a stack of sources into an actual
+  thesis-chapter argument.</p>
+
+  <div class="module-footer-nav">
+    <div class="prev"><a href="../27_related_work_comparison_matrix/tutorial.html">← Module 27: Related-Work Comparison Matrix Builder</a></div>
+    <div class="next"><a href="../29_synthesis_matrix_builder/tutorial.html">Module 29: Synthesis Matrix Builder →</a></div>
+  </div>
+</div>
+</body>
+</html>
