@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Deep Dive: How Pooling Misleads, Even When the Arithmetic Is Correct</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<style>:root{--accent:#9a5fb0;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Concept Cluster 02 — Deep Dive 2</span>How Pooling Misleads, Even When the Arithmetic Is Correct</h1>
+
+  <p>Every formula in Modules 16-19 can be computed correctly and the
+  pooled conclusion can still be wrong — not from a coding bug, but from a
+  real, well-documented statistical trap the arithmetic alone can't catch.</p>
+
+  <h2><span class="section-num">01</span>The Jingle-Jangle Fallacy</h2>
+  <p>Two studies claiming to measure "productivity" might be measuring
+  genuinely different things (the <em>jangle</em> fallacy — different
+  names, actually different constructs, being wrongly treated as
+  comparable), or two studies might use different names for what's
+  actually the same underlying construct and get excluded from a pooling
+  that should have included them (the <em>jingle</em> fallacy, the mirror
+  problem). Module 16's SMD calculator can compute a perfectly correct
+  standardized mean difference between two studies measuring subtly
+  different things — the formula has no way to know the two "productivity"
+  scales aren't really comparable. That judgment has to happen before the
+  arithmetic, during data extraction (Module 10) and evidence-table
+  assembly (Module 14), not after.</p>
+
+  <h2><span class="section-num">02</span>Garbage In, Precisely-Weighted Garbage Out</h2>
+  <p>Module 11's risk-of-bias scorer exists precisely because Module 17's
+  meta-analysis engine has no way to detect that a pooled study's own
+  underlying data was compromised — a poorly-randomized, unblinded trial
+  with a real design flaw gets weighted by <code>1/SE²</code> exactly like
+  a rigorous one, and if its variance happens to be small, a flawed study
+  can dominate a pooled estimate. Pooling amplifies precision, not
+  trustworthiness — the two are independent axes, and conflating them is
+  one of the most common real misreadings of a meta-analysis's forest
+  plot.</p>
+
+  <h2><span class="section-num">03</span>Simpson's Paradox</h2>
+  <p>A trend can appear in several separate groups and reverse when the
+  groups are combined. This is a real, well-documented statistical
+  phenomenon (not unique to meta-analysis, but a real risk within it):
+  pooling across studies with different underlying population
+  compositions can produce a combined trend that doesn't match any
+  individual study's own trend. This is part of why Module 17's I² check
+  matters — high heterogeneity is one of the signals that a pooled number
+  might be hiding exactly this kind of reversal underneath it, which is
+  why Module 17's tutorial recommends investigating <em>why</em> studies
+  disagree rather than only reporting the pooled number.</p>
+
+  <h2><span class="section-num">04</span>Publication Bias's Real Bite</h2>
+  <p>Module 19's Egger's test looks for funnel-plot asymmetry as a
+  statistical signal — but the underlying real-world mechanism is worth
+  naming directly: small studies with null or unfavorable results are
+  measurably less likely to get published, peer-reviewed, or even written
+  up at all, across many fields with documented evidence of this pattern.
+  A meta-analysis pooling only what got published is, structurally,
+  pooling a non-random sample of all the evidence that was ever actually
+  collected — which is exactly why Module 19's tutorial insists a
+  non-significant Egger's test on too few studies isn't reassuring, only
+  inconclusive.</p>
+
+  <div class="warning-box">
+    <strong>The throughline across all four traps:</strong> none of them
+    would be caught by re-checking Module 16-19's arithmetic. Every one of
+    them requires a human judgment call upstream (constructs genuinely
+    comparable? primary studies genuinely trustworthy? heterogeneity
+    genuinely investigated? evidence base genuinely complete?) that no
+    formula, however correctly implemented, can substitute for.
+  </div>
+
+  <p style="margin-top:2em;"><a href="01_explainer.html">← Back to the cluster overview</a> · <a href="02_history_and_methods_deepdive.html">← History and methods</a></p>
+</div>
+</body>
+</html>

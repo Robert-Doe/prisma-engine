@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Deep Dive: History and Alternative Pooling Methods</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<style>:root{--accent:#9a5fb0;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Concept Cluster 02 — Deep Dive 1</span>Where Meta-Analysis Came From, and Methods This Course Doesn't Implement</h1>
+
+  <h2><span class="section-num">01</span>A Short Real History</h2>
+  <ul class="checklist">
+    <li><strong>1904</strong> — Karl Pearson combined data across several typhoid vaccine studies, an early precursor to formal pooling, though not using modern methods.</li>
+    <li><strong>1930s</strong> — Ronald Fisher developed a method for combining p-values across independent tests, an early formal statistical tool for synthesizing multiple studies' results.</li>
+    <li><strong>1976</strong> — Gene Glass coined the term "meta-analysis" specifically, applying it to psychotherapy outcome studies in educational/psychological research — the origin of the name this course's Module 17 implements.</li>
+    <li><strong>1993</strong> — The Cochrane Collaboration formed, formalizing and standardizing the modern systematic-review-plus-meta-analysis methodology this entire course's Track 1 is built around (Cochrane Handbook terminology appears throughout Modules 7, 11, 16, 17, 19).</li>
+  </ul>
+
+  <h2><span class="section-num">02</span>Pooling Methods Module 17 Doesn't Implement</h2>
+  <table>
+    <tr><th>Method</th><th>What it's for</th><th>Why it's not in this course</th></tr>
+    <tr><td>Mantel-Haenszel</td><td>Pooling binary-outcome studies, especially with rare events, without relying on the log-scale normal approximation Module 17 uses</td><td>A genuinely different mathematical approach (stratified 2×2 table combination) — real, common in Cochrane reviews, but a second full method beyond this course's scope</td></tr>
+    <tr><td>Peto's method (odds ratio)</td><td>Extremely rare-event binary outcomes, historically important for early large-scale RCT meta-analyses</td><td>Same reasoning — a specialized alternative to inverse-variance weighting for a specific real-world case Module 17's demo data doesn't need</td></tr>
+    <tr><td>Bayesian meta-analysis</td><td>Treats the between-study variance itself as a full probability distribution rather than a single DerSimonian-Laird point estimate, and can incorporate prior knowledge explicitly</td><td>Requires a genuinely different computational approach (e.g. MCMC sampling) and typically a dedicated library (Stan, JAGS, or Python/R equivalents) — a real, increasingly common alternative, well outside this course's dependency-light architecture target</td></tr>
+    <tr><td>Multilevel / robust variance estimation models</td><td>Handling multiple, non-independent effect sizes from the same study (e.g. several outcomes reported by one paper)</td><td>Module 17 assumes one effect size per study; real reviews often need to handle this more complex, correlated-data case</td></tr>
+  </table>
+
+  <div class="tip-box">
+    <strong>Why inverse-variance weighting (what Module 17 actually implements) is still a reasonable default:</strong>
+    it's the most widely taught, most broadly applicable method, works for
+    both binary and continuous outcomes with the same underlying logic,
+    and is exactly what the Cochrane Handbook presents first before
+    introducing the more specialized alternatives above.
+  </div>
+
+  <p style="margin-top:2em;"><a href="01_explainer.html">← Back to the cluster overview</a> · <a href="03_failure_modes_deepdive.html">Next: failure modes →</a></p>
+</div>
+</body>
+</html>

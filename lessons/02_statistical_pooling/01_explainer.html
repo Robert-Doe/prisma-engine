@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Concept Cluster: Statistical Pooling</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<style>:root{--accent:#9a5fb0;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Concept Cluster 02</span>Statistical Pooling</h1>
+
+  <p>Modules 16, 17, and 19 each build one piece of statistical pooling —
+  effect sizes, combining them, and checking whether the combination is
+  trustworthy — but the deeper ideas connecting all three (why pooling is
+  even valid, what it assumes, and how those assumptions get violated in
+  practice) don't belong to any single one of them.</p>
+
+  <h2><span class="section-num">01</span>The Big Analogy</h2>
+  <div class="analogy-box">
+    <span class="label">Averaging temperatures from different cities, honestly</span>
+    Averaging today's temperature across five cities only means something
+    if you're asking "what's the temperature like across this region
+    today" — a real, coherent question. Average temperatures across five
+    <em>different days</em> in one city and you're answering a different
+    question (typical weather over time). Average temperature readings
+    where one thermometer was miscalibrated, and your average is
+    confidently wrong. Statistical pooling across studies has all three of
+    these traps: pooling assumes the studies are estimating the same real
+    quantity (Module 17's fixed-effect assumption), heterogeneity measures
+    whether that assumption actually holds (Module 17's I²), and
+    publication bias is the miscalibrated-thermometer problem — some
+    "readings" never made it into your average at all (Module 19).
+  </div>
+
+  <h2><span class="section-num">02</span>Where This Shows Up Across the Course</h2>
+  <table>
+    <tr><th>Module</th><th>What it builds</th><th>The assumption it depends on</th></tr>
+    <tr><td><a href="../../modules/track1/16_effect_size_calculator/tutorial.html">Module 16</a></td><td>Converts raw study numbers into a common-scale estimate (OR, RR, SMD) with a confidence interval</td><td>The chosen effect-size formula actually matches the study's design — using an OR formula on cohort data would be silently wrong</td></tr>
+    <tr><td><a href="../../modules/track1/17_meta_analysis_engine/tutorial.html">Module 17</a></td><td>Pools multiple studies' effect sizes into one estimate, two ways, plus I²</td><td>Fixed-effect pooling assumes one true effect underlies all studies; random-effects relaxes that, at the cost of a wider interval</td></tr>
+    <tr><td><a href="../../modules/track1/18_forest_plot_renderer/tutorial.html">Module 18</a></td><td>Visualizes Module 17's output</td><td>Depends on Module 17's numbers being trustworthy — a forest plot can only ever be as honest as the pooling underneath it</td></tr>
+    <tr><td><a href="../../modules/track1/19_publication_bias_detector/tutorial.html">Module 19</a></td><td>Checks whether the studies that made it into the pool are a biased sample of all studies that were ever run</td><td>That funnel-plot asymmetry, if present, reflects something real about which studies got published — not just small-sample noise</td></tr>
+  </table>
+
+  <h2><span class="section-num">03</span>The One Real Number That Ties Them Together</h2>
+  <div class="diagram-box">
+    <pre style="border:none; background:none; padding:0;"><code>This course's own five-study demo (Modules 16-18), run for real:
+
+  Fixed-effect:   pooled OR = 1.923   95% CI [1.297, 2.851]   "significant"
+  Random-effects: pooled OR = 1.866   95% CI [0.675, 5.154]   "not significant"
+
+  I² = 84.8%  (substantial heterogeneity — genuine disagreement between
+               studies, not just sampling noise)
+
+Same five real numbers. Same real formulas. Two different practical
+conclusions, purely because of which assumption about "do these studies
+estimate one true effect" you're willing to make. This is not a rounding
+difference — it's the entire reason the choice between fixed- and
+random-effects models is a real, consequential methodological decision
+in every published meta-analysis, not a technicality.</code></pre>
+  </div>
+
+  <h2><span class="section-num">04</span>Why This Lives Here, Not Inside One Module</h2>
+  <p>Module 16 alone can't show why the model choice matters — it only
+  produces one study's number. Module 17 alone shows the mechanism but,
+  read in isolation, doesn't fully land why I²=84.8% is the number that
+  explains the two models' disagreement. Module 19 alone looks like an
+  unrelated bolt-on. Read together, they're one continuous argument: an
+  effect size is only as trustworthy as the pooling method's assumptions,
+  and those assumptions are only trustworthy if the underlying evidence
+  base isn't itself biased by what never got published.</p>
+
+  <h2><span class="section-num">05</span>Go Deeper</h2>
+  <ul class="checklist">
+    <li><a href="02_history_and_methods_deepdive.html">Deep dive: where meta-analysis came from, and methods this course doesn't implement</a></li>
+    <li><a href="03_failure_modes_deepdive.html">Deep dive: how pooling misleads, even when the arithmetic is correct</a></li>
+  </ul>
+</div>
+</body>
+</html>
