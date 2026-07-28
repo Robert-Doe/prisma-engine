@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Module 17: Meta-Analysis Engine</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+<style>:root{--accent:#6a5a9a;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Module 17 — Track 1: Core Engine</span>Meta-Analysis Engine</h1>
+
+  <h2><span class="section-num">00</span>Before You Start</h2>
+  <p>Finished <a href="../16_effect_size_calculator/tutorial.html">Module 16</a> —
+  every number this module pools comes from that module's actual functions.</p>
+
+  <h2><span class="section-num">01</span>The Big Analogy</h2>
+  <div class="analogy-box">
+    <span class="label">Five clocks, and a question about why they disagree</span>
+    Five clocks each show a slightly different time. One theory: there's
+    one true time, and each clock is just a little noisy — average them,
+    trusting the steadiest clocks most, and you'll land close to the truth.
+    That's the <strong>fixed-effect</strong> model's assumption: every
+    study is estimating the exact same underlying effect, and any
+    disagreement is just sampling noise.
+    <br><br>
+    A second theory: maybe the clocks are actually set to genuinely
+    different times — not broken, just legitimately not synchronized.
+    Averaging them still gives you useful information, but you should
+    report your answer with much more uncertainty, because "the true time"
+    might not even be a single number. That's the
+    <strong>random-effects</strong> model: it allows each study to be
+    estimating a genuinely different true effect, and it accounts for that
+    extra between-study disagreement in its confidence interval.
+    <br><br>
+    This module's own demo has to decide which theory the five fictional
+    studies support — and <code>I² = 84.8%</code> answers it: these clocks
+    disagree too much to be explained by noise alone.
+  </div>
+
+  <h2><span class="section-num">02</span>What Happens, Step by Step</h2>
+  <ol class="checklist">
+    <li><code>from_effect_size_result()</code> takes each study's Module 16 result and reconstructs its pooling-scale estimate and standard error — from the reported CI, the same way a real meta-analyst works from published numbers</li>
+    <li><code>fixed_effect_meta_analysis()</code> weights each study by <code>1/SE²</code> (more precise studies count more) and combines them into one pooled estimate</li>
+    <li>Cochran's <code>Q</code> and <code>I²</code> measure how much the studies actually disagree, beyond what sampling noise alone would explain</li>
+    <li><code>random_effects_meta_analysis()</code> uses <code>Q</code> to estimate <code>τ²</code> (between-study variance), then re-weights every study to account for it — widening the final confidence interval whenever real heterogeneity exists</li>
+    <li><code>display_estimate()</code> converts the pooled result back to its natural, readable scale (undoing the log transform for OR/RR)</li>
+  </ol>
+
+  <h2><span class="section-num">03</span>A Map of the State</h2>
+  <div class="diagram-box">
+    <pre style="border:none; background:none; padding:0;"><code>Study A: OR=5.000  Study B: OR=3.889  Study C: OR=4.000
+Study D: OR=0.818   Study E: OR=0.351   <- disagrees with the other four
+        │
+        ▼  from_effect_size_result() for each (log scale)
+        ▼
+fixed_effect_meta_analysis(effects)
+   pooled OR = 1.923   95% CI [1.297, 2.851]   <- entirely above 1: "significant"
+   Q = 26.37   df = 4   I2 = 84.8%             <- substantial heterogeneity
+        │
+        ▼  random_effects_meta_analysis(effects) uses that same Q, df
+   tau2 = 1.1377   (real between-study variance, not assumed zero)
+   pooled OR = 1.866   95% CI [0.675, 5.154]   <- CROSSES 1: "not significant"
+        │
+        ▼
+Same five studies. Same real formulas. Different practical conclusion —
+because I2=84.8% means the fixed-effect model's assumption (one true
+effect, disagreement is just noise) doesn't hold here.</code></pre>
+  </div>
+
+  <h2><span class="section-num">04</span>The Code, Explained</h2>
+  <pre><code>def fixed_effect_meta_analysis(effects):
+    weights = [1 / e.se ** 2 for e in effects]
+    pooled_y = sum(w * e.y for w, e in zip(weights, effects)) / sum(weights)
+    pooled_se = math.sqrt(1 / sum(weights))
+
+    q, df = _heterogeneity(effects, pooled_y)
+    i2 = max(0.0, (q - df) / q * 100) if q > 0 else 0.0
+    ...</code></pre>
+  <p>And the line that makes random-effects genuinely different — every
+  study's weight is inflated by the same shared <code>tau2</code>, which
+  shrinks the influence of precise studies relative to imprecise ones once
+  real disagreement is detected:</p>
+  <pre><code>random_weights = [1 / (e.se ** 2 + tau2) for e in effects]</code></pre>
+
+  <h2><span class="section-num">05</span>Limits / What You Cannot Do Yet</h2>
+  <div class="compare-grid">
+    <div class="compare-col cant">
+      <h4>Can't do yet</h4>
+      <ul>
+        <li>Pool fewer than 2 studies — meta-analysis requires at least a pair to say anything about agreement or disagreement</li>
+        <li>Visualize the result — that's Module 18's forest plot</li>
+        <li>Detect publication bias in the pooled studies — that's Module 19</li>
+      </ul>
+    </div>
+    <div class="compare-col can">
+      <h4>Can do</h4>
+      <ul>
+        <li>Correctly pool real effect sizes two different ways, matching published formulas exactly</li>
+        <li>Quantify how much studies disagree, not just assume they don't</li>
+        <li>Show, with real numbers, that the choice of model can change whether a result looks "significant"</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2><span class="section-num">06</span>Run It</h2>
+  <pre><code>python meta_analysis.py</code></pre>
+  <p>Expected output (deterministic, no network involved):</p>
+  <pre><code>All self-checks passed.
+
+Individual study effects:
+  Study A: OR = 5.000  95% CI [1.914, 13.061]
+  Study B: OR = 3.889  95% CI [1.533, 9.868]
+  Study C: OR = 4.000  95% CI [1.872, 8.545]
+  Study D: OR = 0.818  95% CI [0.340, 1.970]
+  Study E: OR = 0.351  95% CI [0.140, 0.879]
+
+Fixed-effect model
+  Pooled OR = 1.923  95% CI [1.297, 2.851]
+  Q = 26.37  df = 4  I2 = 84.8%
+
+Random-effects model (DerSimonian-Laird)
+  Pooled OR = 1.866  95% CI [0.675, 5.154]
+  tau2 = 1.1377
+
+  Random-effects CI is wider than fixed-effect's — expected, since
+  random-effects also accounts for between-study heterogeneity, not
+  just each study's own sampling error.</code></pre>
+
+  <h2><span class="section-num">07</span>Brain Exercise</h2>
+  <div class="brain-exercise">
+    <details>
+      <summary>The fixed-effect model says this pooled result is significant (CI entirely above 1); the random-effects model says it isn't (CI crosses 1). Which one is "right"?</summary>
+      <div class="answer">
+        Neither is simply wrong — they're answering slightly different
+        questions, and which one is <em>appropriate</em> depends on
+        whether the fixed-effect assumption (every study estimates the
+        same true effect) is actually plausible here. With
+        <code>I² = 84.8%</code>, that assumption is hard to defend — the
+        studies disagree far more than sampling noise alone would predict.
+        In real practice, high heterogeneity like this is usually a signal
+        to report the random-effects result (or better, to investigate
+        <em>why</em> the studies disagree — different populations?
+        different outcome definitions? — before pooling them at all).
+        Reporting only the fixed-effect model's tighter, "significant"
+        interval here would be misleading given how much real disagreement
+        exists between the studies.
+      </div>
+    </details>
+  </div>
+
+  <h2><span class="section-num">08</span>There Are No Dumb Questions</h2>
+  <div class="qa-entry">
+    <div class="q">Why does `from_effect_size_result()` reconstruct the SE from a confidence interval instead of just using Module 16's original standard error directly?</div>
+    <div class="a">Because `EffectSizeResult` (Module 16) doesn't store the SE directly — only the final estimate and CI bounds, which is what a real published paper typically reports too. Reconstructing SE from a CI is standard, common practice for exactly that reason: real meta-analyses very often only have access to a study's published estimate and interval, not its internal calculation.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">What would `I²` be if all five studies had produced the exact same odds ratio?</div>
+    <div class="a">0% — confirmed directly in this module's self-checks, which pool two identical studies and assert `I2 == 0.0`. Zero heterogeneity is what "the studies fully agree, beyond noise" looks like numerically.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">Could I pool risk ratios and odds ratios together in one meta-analysis?</div>
+    <div class="a">Not with this module as built — both happen to use the log scale, so `MixedScaleError` wouldn't catch it, but OR and RR aren't the same quantity even on the log scale, and pooling them together would still be statistically questionable. This module only actively guards against the more clear-cut error (mixing log-scale and linear-scale measures); mixing OR with RR is a real, subtler pitfall left to the caller's judgment.</div>
+  </div>
+
+  <h2><span class="section-num">09</span>What's Next</h2>
+  <p>A pooled estimate and an I² number are hard to absorb as raw numbers.
+  Module 18 renders this exact result as a forest plot — the field-standard
+  visual for showing every study's effect, the pooled estimate, and how
+  much they agree, all at once.</p>
+
+  <div class="module-footer-nav">
+    <div class="prev"><a href="../16_effect_size_calculator/tutorial.html">← Module 16: Effect Size Calculator</a></div>
+    <div class="next"><a href="../18_forest_plot_renderer/tutorial.html">Module 18: Forest Plot Renderer →</a></div>
+  </div>
+</div>
+</body>
+</html>
