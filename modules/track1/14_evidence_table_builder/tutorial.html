@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Module 14: Evidence Table Builder</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+<style>:root{--accent:#b5843f;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Module 14 — Track 1: Core Engine</span>Evidence Table Builder</h1>
+
+  <h2><span class="section-num">00</span>Before You Start</h2>
+  <p>Finished <a href="../10_data_extraction_engine/tutorial.html">Module 10</a> —
+  this module assembles many of that module's <code>ExtractedRecord</code>s
+  into one table.</p>
+
+  <h2><span class="section-num">01</span>The Big Analogy</h2>
+  <div class="analogy-box">
+    <span class="label">A stack of index cards vs. a spreadsheet</span>
+    Three studies extracted onto three separate index cards can each be
+    read individually — but to answer "how many studies found a positive
+    effect," you'd have to hold all three cards, read each one, and count
+    by hand. Transcribe the same three cards into one spreadsheet and the
+    answer is a single glance down one column.
+    <br><br>
+    Nothing about the underlying facts changes between the index cards and
+    the spreadsheet. What changes is what you can <em>do</em> with them.
+    <code>build_evidence_table()</code> is the transcription step — and
+    <code>table.to_dict_rows()</code>'s column-reading in this module's
+    demo is the glance down the column that the index cards alone could
+    never give you directly.
+  </div>
+
+  <h2><span class="section-num">02</span>What Happens, Step by Step</h2>
+  <ol class="checklist">
+    <li>Each study has already been through Module 10's <code>extract()</code>, producing an <code>ExtractedRecord</code></li>
+    <li><code>build_evidence_table()</code> re-validates every row against the table's target schema — not trusting that validation already happened correctly upstream</li>
+    <li>A row that fails re-validation raises <code>SchemaMismatchError</code>, naming which study and why, before it ever joins the table</li>
+    <li><code>EvidenceTable.column_names()</code> fixes the column order: title, year, then every schema field in declaration order</li>
+    <li><code>render_markdown()</code> produces a real, readable table; <code>to_dict_rows()</code> produces the same data ready for column-wise analysis</li>
+  </ol>
+
+  <h2><span class="section-num">03</span>A Map of the State</h2>
+  <div class="diagram-box">
+    <pre style="border:none; background:none; padding:0;"><code>ExtractedRecord(Study A, {sample_size: 210, study_design: "RCT", ...})
+ExtractedRecord(Study B, {sample_size: 640, study_design: "cohort", ...})
+ExtractedRecord(Study C, {sample_size: 88, study_design: "cross-sectional", ...})
+        │
+        ▼  build_evidence_table(rows, REMOTE_WORK_SCHEMA)
+        │     re-validates EVERY row against REMOTE_WORK_SCHEMA
+        ▼
+EvidenceTable(schema=REMOTE_WORK_SCHEMA, rows=[A, B, C])
+        │
+        ├── render_markdown() ──► | title | year | sample_size | ... |
+        │                          |-------|------|-------------|-----|
+        │                          | Study A | 2023 | 210 | RCT | ... |
+        │                          | Study B | 2021 | 640 | cohort | ...|
+        │                          | Study C | 2022 | 88 | cross-sect.|..|
+        │
+        └── to_dict_rows() ──► [{"effect_direction": "positive", ...},
+                                  {"effect_direction": "no effect", ...},
+                                  {"effect_direction": "mixed", ...}]
+                                       │
+                                       ▼  column pulled straight out:
+                             ['positive', 'no effect', 'mixed']</code></pre>
+  </div>
+
+  <h2><span class="section-num">04</span>The Code, Explained</h2>
+  <p>The re-validation step that's the actual point of this module:</p>
+  <pre><code>def build_evidence_table(extracted_records, schema):
+    for er in extracted_records:
+        try:
+            validate_extraction(schema, er.data)
+        except ExtractionValidationError as e:
+            raise SchemaMismatchError(
+                f'"{er.record.title}" does not satisfy the target schema: {e}'
+            ) from e
+    return EvidenceTable(schema=schema, rows=list(extracted_records))</code></pre>
+  <p>And the column-pull that's the whole reason a table beats a stack of
+  cards:</p>
+  <pre><code>directions = [row["effect_direction"] for row in table.to_dict_rows()]
+# ['positive', 'no effect', 'mixed']</code></pre>
+
+  <h2><span class="section-num">05</span>Limits / What You Cannot Do Yet</h2>
+  <div class="compare-grid">
+    <div class="compare-col cant">
+      <h4>Can't do yet</h4>
+      <ul>
+        <li>Mix rows extracted under genuinely different schemas in one table — the table assumes exactly one shared schema throughout</li>
+        <li>Do anything statistical with the assembled columns — that's Modules 16-17</li>
+        <li>Handle a schema change mid-review (if the extraction form gets revised, old rows need re-extraction, not silent tolerance)</li>
+      </ul>
+    </div>
+    <div class="compare-col can">
+      <h4>Can do</h4>
+      <ul>
+        <li>Turn many individually-valid extractions into one genuinely comparable table</li>
+        <li>Catch a row that shouldn't be in the table, even if it individually looked fine when it was created</li>
+        <li>Support both a human-readable rendering and a machine-usable row format from the same underlying data</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2><span class="section-num">06</span>Run It</h2>
+  <pre><code>python evidence_table.py</code></pre>
+  <p>Expected output (deterministic, no network involved):</p>
+  <pre><code>All self-checks passed.
+
+Evidence table: 3 studies, 7 columns
+| title | year | sample_size | study_design | effect_direction | comparison_group | outcome_measure |
+|---|---|---|---|---|---|---|
+| A Longitudinal Comparison of Remote and In-Office Knowledge Worker Output | 2023 | 210 | RCT | positive | in-office workers | output per hour |
+| Telecommuting and Job Performance: A Cohort Study | 2021 | 640 | cohort | no effect | pre-pandemic baseline |  |
+| Mixed Effects of Hybrid Schedules on Team Productivity | 2022 | 88 | cross-sectional | mixed | fully in-office teams | self-reported productivity |
+
+Now what wasn't possible before assembly: reading straight down a
+column instead of one study at a time.
+  effect_direction column: ['positive', 'no effect', 'mixed']
+  -> 1 positive, 1 no effect, 1 mixed
+
+A study extracted with an incompatible schema is caught, not silently added
+  Raised as expected: "A Study Missing Required Fields" does not satisfy the target schema: missing required field "study_design"</code></pre>
+
+  <h2><span class="section-num">07</span>Brain Exercise</h2>
+  <div class="brain-exercise">
+    <details>
+      <summary>Module 10's `extract()` already validates data before returning an `ExtractedRecord`. Why does this module bother re-validating the exact same data?</summary>
+      <div class="answer">
+        Because `ExtractedRecord` is a plain, ordinary dataclass — nothing
+        stops a caller from constructing one directly with
+        <code>ExtractedRecord(record=..., data={...})</code>, completely
+        bypassing <code>extract()</code> and the validation inside it. This
+        module's own demo does exactly that on purpose, to build the
+        "bad" row it then catches. Trusting that every <code>ExtractedRecord</code>
+        that reaches this module must have gone through validated
+        <code>extract()</code> would be trusting a convention, not a
+        guarantee — and this module's whole job is guaranteeing the table
+        it produces is actually comparable, not just usually comparable.
+      </div>
+    </details>
+  </div>
+
+  <h2><span class="section-num">08</span>There Are No Dumb Questions</h2>
+  <div class="qa-entry">
+    <div class="q">What happens to a study whose optional `outcome_measure` field was never filled in?</div>
+    <div class="a">It renders as a blank cell in the markdown table and is simply absent from that row's dict in `to_dict_rows()`. Nothing errors — Module 10 already marked that field optional, and this module respects that, rather than treating "missing optional data" the same as "missing required data."</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">Could I build two different evidence tables from the same corpus, using two different schemas?</div>
+    <div class="a">Yes — `build_evidence_table()` takes the schema as an explicit argument every time, so nothing ties a corpus to one fixed schema. You could, for instance, extract the same studies once against a quantitative-outcomes schema and once against a study-quality schema, producing two separate, separately-comparable tables.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">Why does the error message name the study's title instead of, say, a row index?</div>
+    <div class="a">Because "row 2 failed validation" forces a human to go count rows to figure out which study that even was. Naming the title directly means the error is immediately actionable — you know exactly which extraction to go fix without any extra lookup.</div>
+  </div>
+
+  <h2><span class="section-num">09</span>What's Next</h2>
+  <p>The evidence table handles quantitative, structured data well — but
+  not every included study reports numbers. Module 15 builds a thematic
+  coding engine for synthesizing qualitative findings, where "comparable"
+  means something different from lining up columns.</p>
+
+  <div class="module-footer-nav">
+    <div class="prev"><a href="../13_citation_snowballing_engine/tutorial.html">← Module 13: Citation Snowballing Engine</a></div>
+    <div class="next"><a href="../15_thematic_coding_engine/tutorial.html">Module 15: Thematic Coding Engine →</a></div>
+  </div>
+</div>
+</body>
+</html>
