@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Module 12: PRISMA Diagram Generator</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+<style>:root{--accent:#4c6fa5;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Module 12 — Track 1: Core Engine — End of Phase 1</span>PRISMA Diagram Generator</h1>
+
+  <div class="prereq-tags">
+    <span class="status-badge">Prerequisites:</span>
+    <a href="../../../prerequisites/prereq_prisma_standard.html">The PRISMA Reporting Standard</a>
+  </div>
+
+  <div class="warning-box">Needs internet access — the demo reuses Modules 4-8's real, live pipeline.</div>
+
+  <h2><span class="section-num">00</span>Before You Start</h2>
+  <p>Finished <a href="../07_prisma_flow_tracker/tutorial.html">Module 7</a>
+  and <a href="../08_screening_engine/tutorial.html">Module 8</a> — this
+  module draws exactly what those two modules already tracked.</p>
+
+  <h2><span class="section-num">01</span>The Big Analogy</h2>
+  <div class="analogy-box">
+    <span class="label">The as-built drawing, not the original blueprint</span>
+    An architect's original blueprint shows what was planned. Real
+    construction never goes exactly to plan — a wall moves six inches, a
+    door gets relocated. After the building is finished, a surveyor
+    produces an "as-built" drawing: redrawn from what's actually standing,
+    not from what was originally sketched.
+    <br><br>
+    <code>render_prisma_svg()</code> is the as-built drawing. It doesn't
+    draw a generic PRISMA template with blanks for you to fill in later —
+    it reads Module 7's tracker, which only ever holds numbers real
+    pipeline stages actually produced, and draws exactly that. This
+    module's self-checks even prove it: the rendered SVG is parsed back
+    open and checked for the literal real numbers (<code>"n = 20"</code>,
+    <code>"n = 8"</code>) that came out of an actual run.
+  </div>
+
+  <h2><span class="section-num">02</span>What Happens, Step by Step</h2>
+  <ol class="checklist">
+    <li><code>render_prisma_svg(tracker)</code> reads the tracker's identification, deduplication, screening, and (if logged) eligibility counts</li>
+    <li>Each stage becomes a box; text wraps automatically and the box grows to fit it</li>
+    <li>Exclusion counts (with their reasons) become side boxes, connected to the main flow by an arrow — reusing exactly the reason strings Modules 8/9 logged</li>
+    <li>If eligibility hasn't been logged yet, the function stops after the screening stage — a valid, honest, partial diagram, not an error</li>
+    <li>The result is a plain SVG string — save it with <code>save_svg()</code>, or embed it directly in any HTML page</li>
+  </ol>
+
+  <h2><span class="section-num">03</span>A Map of the State</h2>
+  <div class="diagram-box">
+    <pre style="border:none; background:none; padding:0;"><code>tracker.identification = {"PubMed": 5, "arXiv": 5}
+tracker.duplicates_removed = 0
+tracker.screening_excluded = {"no abstract available for screening": 5,
+                               "no productivity/performance/output keyword found": 1}
+tracker.screening_included = 4
+        │
+        ▼  render_prisma_svg(tracker)
+        │
+  ┌─────────────────────────────────────┐
+  │ Records identified from: PubMed      │
+  │ (n=5); arXiv (n=5). Total (n=10)     │
+  └───────────────────┬───────────────────┘
+                       ▼
+  ┌─────────────────────────────────────┐     ┌───────────────────────┐
+  │ Records screened (n=10)              │────►│ Records excluded (n=6)│
+  └───────────────────┬───────────────────┘     │ no abstract (n=5);    │
+                       ▼                         │ no keyword (n=1)      │
+  ┌─────────────────────────────────────┐     └───────────────────────┘
+  │ Reports assessed for eligibility(n=4)│
+  └─────────────────────────────────────┘
+   (stops here — Module 9's eligibility stage wasn't logged in this run)</code></pre>
+  </div>
+
+  <h2><span class="section-num">04</span>The Code, Explained</h2>
+  <p>The core pattern — check whether a stage was logged, and only extend
+  the diagram if it was:</p>
+  <pre><code>if tracker.screening_included is not None:
+    # ... draw the screened box, the excluded-at-screening side box ...
+    if tracker.eligibility_included is not None:
+        # ... draw the eligibility box, the excluded-at-eligibility side box,
+        #     and finally the included box ...</code></pre>
+  <p>And the self-check that proves the SVG actually reflects real numbers,
+  not just that it's syntactically valid:</p>
+  <pre><code>all_text = "".join(t.text or "" for t in root.iter("{http://www.w3.org/2000/svg}text"))
+assert "n = 20" in all_text   # total identified
+assert "n = 8" in all_text    # final included</code></pre>
+
+  <h2><span class="section-num">05</span>Limits / What You Cannot Do Yet</h2>
+  <div class="compare-grid">
+    <div class="compare-col cant">
+      <h4>Can't do yet</h4>
+      <ul>
+        <li>Render the full PRISMA 2020 template exactly (registers vs. databases split, "reports sought/not retrieved" stage) — this is a simplified subset</li>
+        <li>Export to PNG/PDF directly — SVG only (any browser or vector tool converts it further)</li>
+        <li>Lay out more than a handful of exclusion reasons cleanly — very long reason lists would produce a tall, awkward side box</li>
+      </ul>
+    </div>
+    <div class="compare-col can">
+      <h4>Can do</h4>
+      <ul>
+        <li>Turn real, validated tracker state into a real, parseable diagram artifact</li>
+        <li>Adapt automatically to however much of the pipeline has actually run</li>
+        <li>Produce output any web page can embed directly — this course's own tutorials, for one</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2><span class="section-num">06</span>Run It</h2>
+  <pre><code>python diagram_generator.py</code></pre>
+  <p>Real output captured 2026-07-28 (your live counts will differ):</p>
+  <pre><code>All self-checks passed.
+
+======================================================================
+Real pipeline: Modules 4-8 chained, then rendered as a real diagram
+======================================================================
+Rendered SVG: 2397 characters, saved to prisma_flow_demo.svg
+Parsed as valid XML: 5 rect elements, 9 text elements
+SVG root tag: {http://www.w3.org/2000/svg}svg</code></pre>
+  <p>Open the saved <code>prisma_flow_demo.svg</code> in any browser to see
+  the actual rendered diagram.</p>
+
+  <h2><span class="section-num">07</span>Brain Exercise</h2>
+  <div class="brain-exercise">
+    <details>
+      <summary>The demo's diagram stops after "Reports assessed for eligibility" instead of showing an "Included" box. Is that a bug?</summary>
+      <div class="answer">
+        No — it's the correct, honest behavior. Module 9 (the full-text
+        eligibility engine) wasn't run as part of this module's demo
+        pipeline, so <code>tracker.eligibility_included</code> is still
+        <code>None</code>. Drawing an "Included" box anyway would mean
+        inventing a final count that was never actually logged — exactly
+        the kind of fabricated-looking-real output this course's quality
+        bar rules out. A diagram that honestly stops where the real
+        pipeline actually stopped is more trustworthy than one that always
+        looks "finished."
+      </div>
+    </details>
+  </div>
+
+  <h2><span class="section-num">08</span>There Are No Dumb Questions</h2>
+  <div class="qa-entry">
+    <div class="q">Why SVG text markup instead of, say, a PNG generated with a drawing library?</div>
+    <div class="a">SVG is human-readable text — you can open this module's output in an editor and read the real numbers directly, diff two versions of it, or embed it inline in an HTML page with no separate image file to manage. A PNG would hide all of that behind opaque pixel data.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">What happens if a reason string is extremely long — would it break the diagram?</div>
+    <div class="a">It would render, but awkwardly — `_wrap_text()` will keep wrapping at its character limit regardless of length, producing a very tall side box. That's a real, named limit in this module's Limits section, not a silent failure.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">Could I use this generator with a tracker I built by hand, not from a real pipeline run?</div>
+    <div class="a">Yes — exactly what the self-checks do. `render_prisma_svg()` has no idea whether a tracker's numbers came from a live pipeline or were typed in by hand; it only ever reads whatever state the tracker actually holds.</div>
+  </div>
+
+  <h2><span class="section-num">09</span>Phase 1 Complete — What's Next</h2>
+  <p>Twelve modules in, Track 1's "Bare Metal Foundation" is done: a
+  research question can be formalized, compiled into a search, run against
+  real live sources, deduplicated, screened at two stages, extracted,
+  quality-appraised, and rendered into a real PRISMA diagram — all with
+  genuinely verified, mostly live-data-backed code. Phase 2 starts turning
+  this audited set of included studies into an actual answer: citation
+  snowballing, evidence tables, thematic coding, and — for the first time
+  in this course — real statistical synthesis.</p>
+
+  <div class="module-footer-nav">
+    <div class="prev"><a href="../11_risk_of_bias_scorer/tutorial.html">← Module 11: Risk-of-Bias / Quality Appraisal Scorer</a></div>
+    <div class="next"><a href="../13_citation_snowballing_engine/tutorial.html">Module 13: Citation Snowballing Engine →</a></div>
+  </div>
+</div>
+</body>
+</html>
