@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Module 16: Effect Size Calculator</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+<style>:root{--accent:#a65d3f;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Module 16 — Track 1: Core Engine</span>Effect Size Calculator</h1>
+
+  <div class="prereq-tags">
+    <span class="status-badge">Prerequisites:</span>
+    <a href="../../../prerequisites/prereq_effect_sizes_stats.html">Effect Sizes & Statistical Primitives</a>
+  </div>
+
+  <h2><span class="section-num">00</span>Before You Start</h2>
+  <p>Read Prerequisite 6 first — this module implements exactly the OR,
+  RR, and SMD formulas it introduces, plus the confidence-interval logic.</p>
+
+  <h2><span class="section-num">01</span>The Big Analogy</h2>
+  <div class="analogy-box">
+    <span class="label">A ruler that stretches unevenly near zero</span>
+    Try to measure "how much bigger" with an ordinary ruler on a ratio
+    like odds or risk, and the ruler misbehaves: a ratio can't go below
+    zero, but it can go arbitrarily high above 1, so a margin of error
+    computed directly on that ruler can come out lopsided — or, worse,
+    with a lower bound below zero, which is nonsense for something that
+    can never be negative.
+    <br><br>
+    The fix real statisticians use is switching to a logarithmic ruler,
+    where the distances even out and become symmetric — compute the
+    margin of error there, then convert back. <code>odds_ratio()</code> and
+    <code>risk_ratio()</code> both do exactly this: work in
+    <code>math.log()</code> space, then <code>math.exp()</code> the
+    interval's endpoints back at the very end. <code>standardized_mean_difference()</code>
+    never needs this trick — a difference, unlike a ratio, is naturally
+    symmetric around zero already.
+  </div>
+
+  <h2><span class="section-num">02</span>What Happens, Step by Step</h2>
+  <ol class="checklist">
+    <li>For a binary outcome from a 2×2 table, <code>odds_ratio()</code> or <code>risk_ratio()</code> computes the point estimate directly, then its standard error <em>on the log scale</em></li>
+    <li>The confidence interval is built in log space (<code>ln(estimate) ± 1.96 × SE</code>) and only then exponentiated back to the ratio scale</li>
+    <li>For a continuous outcome, <code>standardized_mean_difference()</code> computes Cohen's d from a pooled standard deviation, then a direct (non-log) confidence interval</li>
+    <li>Every result is an <code>EffectSizeResult</code> that knows its own no-effect value (1.0 for ratios, 0.0 for differences) and can check <code>crosses_no_effect()</code> against it</li>
+    <li>A zero cell — a real, common problem with small or rare-event studies — raises <code>ZeroCellError</code> unless <code>continuity_correction=True</code> applies the standard +0.5-per-cell fix</li>
+  </ol>
+
+  <h2><span class="section-num">03</span>A Map of the State</h2>
+  <div class="diagram-box">
+    <pre style="border:none; background:none; padding:0;"><code>odds_ratio(a=10, b=40, c=5, d=45)
+        │
+        ▼
+OR = (a*d)/(b*c) = (10*45)/(40*5) = 450/200 = 2.25
+        │
+        ▼  work in LOG space
+ln(OR) = ln(2.25) = 0.8109...
+SE[ln(OR)] = sqrt(1/10 + 1/40 + 1/5 + 1/45) = sqrt(0.1+0.025+0.2+0.0222) = 0.5883...
+        │
+        ▼
+ln(OR) - 1.96*SE = 0.8109 - 1.1531 = -0.3422
+ln(OR) + 1.96*SE = 0.8109 + 1.1531 =  1.9640
+        │
+        ▼  exponentiate back to the ratio scale
+ci_lower = exp(-0.3422) = 0.710
+ci_upper = exp(1.9640)  = 7.128
+        │
+        ▼
+EffectSizeResult(OR=2.25, CI=[0.710, 7.128], no_effect_value=1.0)
+crosses_no_effect() -> True   (1.0 is inside [0.710, 7.128])</code></pre>
+  </div>
+
+  <h2><span class="section-num">04</span>The Code, Explained</h2>
+  <pre><code>def odds_ratio(a, b, c, d, continuity_correction=False):
+    if 0 in (a, b, c, d):
+        if not continuity_correction:
+            raise ZeroCellError(...)
+        a, b, c, d = a + 0.5, b + 0.5, c + 0.5, d + 0.5
+
+    or_estimate = (a * d) / (b * c)
+    se_ln = math.sqrt(1/a + 1/b + 1/c + 1/d)
+    ln_or = math.log(or_estimate)
+    return EffectSizeResult(
+        measure="OR", estimate=or_estimate,
+        ci_lower=math.exp(ln_or - Z_95 * se_ln),
+        ci_upper=math.exp(ln_or + Z_95 * se_ln),
+        no_effect_value=1.0,
+    )</code></pre>
+  <p>Every step traces directly to Prerequisite 6's explanation — this
+  isn't a black-box statistics call, it's the textbook formula written out
+  in five lines.</p>
+
+  <h2><span class="section-num">05</span>Limits / What You Cannot Do Yet</h2>
+  <div class="compare-grid">
+    <div class="compare-col cant">
+      <h4>Can't do yet</h4>
+      <ul>
+        <li>Support confidence levels other than 95% — <code>Z_95</code> is a fixed constant, not computed for arbitrary levels</li>
+        <li>Pool multiple studies' effect sizes into one estimate — that's Module 17</li>
+        <li>Handle paired/matched-pairs data or adjusted (regression-based) effect sizes — only simple, unadjusted 2×2 tables and two-group continuous comparisons</li>
+      </ul>
+    </div>
+    <div class="compare-col can">
+      <h4>Can do</h4>
+      <ul>
+        <li>Correctly compute all three standard effect-size families from raw study numbers, matching hand-computable textbook examples exactly</li>
+        <li>Build statistically valid confidence intervals, on the correct scale for each measure</li>
+        <li>Handle the real, common zero-cell problem explicitly, with the actual standard fix, not a crash</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2><span class="section-num">06</span>Run It</h2>
+  <pre><code>python effect_size.py</code></pre>
+  <p>Expected output (deterministic, no network involved):</p>
+  <pre><code>All self-checks passed.
+
+Odds Ratio — a fictional case-control study
+Treatment group: 30 events / 10 non-events. Control: 15 events / 25 non-events.
+  OR = 5.000  95% CI [1.914, 13.061]
+  Crosses no-effect (1.0)? False
+
+Risk Ratio — a fictional cohort study
+Treatment: 40 events of 200. Control: 60 events of 200.
+  RR = 0.667  95% CI [0.470, 0.945]
+  Crosses no-effect (1.0)? False
+
+Standardized Mean Difference — a fictional RCT, two instruments
+Remote group: mean=7.2, sd=1.4, n=85. In-office group: mean=6.5, sd=1.6, n=90.
+  SMD = 0.465  95% CI [0.164, 0.765]
+  Crosses no-effect (0.0)? False
+
+A zero cell breaks the standard formula — caught, not silently wrong
+  Raised as expected: zero cell in table (a=12, b=0, c=8, d=20) — the standard log-odds SE formula divides by zero here. Pass continuity_correction=True to apply the standard +0.5-per-cell correction, per Cochrane Handbook guidance.
+  With continuity_correction=True, the standard +0.5 fix is applied instead:
+  OR = 60.294  95% CI [3.195, 1137.854]</code></pre>
+
+  <h2><span class="section-num">07</span>Brain Exercise</h2>
+  <div class="brain-exercise">
+    <details>
+      <summary>The continuity-corrected zero-cell example produces OR = 60.294 with a huge confidence interval [3.195, 1137.854]. Is that number trustworthy?</summary>
+      <div class="answer">
+        The point estimate is real arithmetic, correctly computed — but a
+        confidence interval that wide is itself the honest answer here,
+        not a flaw in the calculation. A study with a literal zero-event
+        cell has almost no statistical information about how large the
+        true effect actually is; the continuity correction lets the
+        formula produce <em>a</em> number instead of crashing, but it
+        can't manufacture certainty the data never had. A CI spanning from
+        about 3 to over 1000 is the formula honestly reporting "technically
+        an effect, but we genuinely don't know how big" — which is more
+        useful than either a crash or a falsely precise-looking number.
+      </div>
+    </details>
+  </div>
+
+  <h2><span class="section-num">08</span>There Are No Dumb Questions</h2>
+  <div class="qa-entry">
+    <div class="q">Why does `crosses_no_effect()` compare against 1.0 for OR/RR but 0.0 for SMD?</div>
+    <div class="a">Because "no effect" means something different on each scale — see Prerequisite 6. A ratio of exactly 1 means the two groups' odds or risk are identical; a difference of exactly 0 means the two groups' means are identical. Each `EffectSizeResult` carries the correct value for its own measure automatically, so a caller never has to remember which convention applies where.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">What's the difference between `odds_ratio()`'s zero-cell handling and `risk_ratio()`'s?</div>
+    <div class="a">Odds ratio needs all four cells (a, b, c, d) non-zero, since all four appear in its standard error formula. Risk ratio's formula only involves the two event counts (a and c) in a way that breaks at zero — the group totals (n1, n2) don't cause the same division problem — so only `a` and `c` are checked.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">Could I use `standardized_mean_difference()` with unequal sample sizes?</div>
+    <div class="a">Yes — the demo's own example uses n1=85, n2=90. The pooled standard deviation formula is specifically designed to weight each group's variance by its own sample size, so unequal group sizes are the normal case this formula is built for, not an edge case.</div>
+  </div>
+
+  <h2><span class="section-num">09</span>What's Next</h2>
+  <p>One study's effect size is a data point. Module 17 pools several
+  studies' effect sizes — computed with exactly this module's functions —
+  into a single combined estimate: a real, working meta-analysis engine.</p>
+
+  <div class="module-footer-nav">
+    <div class="prev"><a href="../15_thematic_coding_engine/tutorial.html">← Module 15: Thematic Coding Engine</a></div>
+    <div class="next"><a href="../17_meta_analysis_engine/tutorial.html">Module 17: Meta-Analysis Engine →</a></div>
+  </div>
+</div>
+</body>
+</html>
