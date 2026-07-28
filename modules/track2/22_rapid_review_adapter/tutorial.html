@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Module 22: Rapid Review Adapter</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+<style>:root{--accent:#d97642;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Module 22 — Track 2: Applied Layer</span>Rapid Review Adapter</h1>
+
+  <div class="prereq-tags">
+    <span class="status-badge">Depends on Track 1:</span>
+    <a href="../../track1/05_multi_source_aggregator/tutorial.html">Module 5</a>
+    <a href="../../track1/08_screening_engine/tutorial.html">Module 8</a>
+    <a href="../../track1/11_risk_of_bias_scorer/tutorial.html">Module 11</a>
+  </div>
+
+  <div class="warning-box">Needs internet access — searches PubMed live.</div>
+
+  <h2><span class="section-num">00</span>Before You Start</h2>
+  <p>Read <a href="../../track0_orientation/00_literature_review_landscape/concept_rapid_review.html">Module 0's Rapid Review concept page</a> —
+  this module implements exactly the three simplifications it names.</p>
+
+  <h2><span class="section-num">01</span>The Big Analogy</h2>
+  <div class="analogy-box">
+    <span class="label">The two-hour deadline, not the six-week investigation</span>
+    A journalist on a two-hour deadline still checks facts and still names
+    sources — they just can't call every source a six-week investigative
+    piece would. What separates honest deadline journalism from bad
+    journalism isn't the shorter timeline itself; it's whether the
+    published piece says "I confirmed this with two sources but didn't
+    reach a third" or just quietly presents the same confidence a fully
+    verified piece would.
+    <br><br>
+    <code>RapidReviewLog</code> is that disclosure. This module doesn't
+    hide that it searched one database instead of two, screened with one
+    reviewer instead of two, and appraised two risk-of-bias domains
+    instead of five — every one of those is printed, with the standard
+    practice it replaces and why, before any result is reported.
+  </div>
+
+  <h2><span class="section-num">02</span>What Happens, Step by Step</h2>
+  <ol class="checklist">
+    <li><code>run_rapid_review()</code> logs the Identification simplification, then calls Module 4/5's <code>search_pubmed()</code> — PubMed only, <code>fetch_arxiv()</code> never called</li>
+    <li>It logs the Screening simplification, then calls Module 8's <code>screen()</code> exactly once — no second reviewer, no reconciliation step</li>
+    <li>It logs the Quality Appraisal simplification, describing <code>REDUCED_RCT_CHECKLIST</code> — built from two of Module 11's own five real <code>ChecklistItem</code>s, not five new ones</li>
+    <li><code>RapidReviewLog.render()</code> produces the actual disclosure text — standard practice, what this review did instead, and why — for every stage</li>
+  </ol>
+
+  <h2><span class="section-num">03</span>A Map of the State</h2>
+  <div class="diagram-box">
+    <pre style="border:none; background:none; padding:0;"><code>run_rapid_review(query)
+        │
+        ▼  log: Identification — single source (PubMed only)
+search_pubmed(query)  ──►  real live records  (fetch_arxiv() never called)
+        │
+        ▼  log: Screening — single reviewer
+screen(records, DEFAULT_RULES)  ──►  included records (one pass, no reconciliation)
+        │
+        ▼  log: Quality appraisal — reduced checklist
+REDUCED_RCT_CHECKLIST = Checklist("RCT (rapid, reduced)", [
+    Module11.RCT_CHECKLIST.items[0],   # random_sequence — REUSED, not rewritten
+    Module11.RCT_CHECKLIST.items[2],   # blinding — REUSED, not rewritten
+])                                      # allocation_concealment, incomplete_data,
+                                        # selective_reporting: DROPPED, logged as dropped
+        │
+        ▼
+RapidReviewLog.render()  ──►  full, explicit disclosure of all three
+                               simplifications, standard vs. rapid vs. why</code></pre>
+  </div>
+
+  <h2><span class="section-num">04</span>The Code, Explained</h2>
+  <pre><code>REDUCED_RCT_CHECKLIST = Checklist("RCT (rapid, reduced)", [
+    ChecklistItem("random_sequence", "Was the allocation sequence adequately randomized?"),
+    ChecklistItem("blinding", "Were participants/outcome assessors blinded to group assignment?"),
+])</code></pre>
+  <p>Compare this directly to Module 11's <code>RCT_CHECKLIST</code>, which
+  has five items. This is two of the same five — not two similar-sounding
+  new ones — so the relationship between "full" and "reduced" is exact,
+  not approximate.</p>
+
+  <h2><span class="section-num">05</span>Limits / What You Cannot Do Yet</h2>
+  <div class="compare-grid">
+    <div class="compare-col cant">
+      <h4>Can't do yet</h4>
+      <ul>
+        <li>Simulate a real second reviewer — "single-reviewer" here just means <code>screen()</code> runs once; a genuine dual-review workflow needs two actual people</li>
+        <li>Recover the coverage lost by searching one source instead of two — that loss is real, not just logged</li>
+        <li>Retroactively appraise the three dropped risk-of-bias domains from the reduced checklist's output alone</li>
+      </ul>
+    </div>
+    <div class="compare-col can">
+      <h4>Can do</h4>
+      <ul>
+        <li>Run a genuinely faster review using real Track 1 code, with every corner cut named and justified</li>
+        <li>Prove the reduced checklist really is a subset of the full one, not a separately-invented approximation</li>
+        <li>Make it impossible for a reader of this review's output to mistake it for a full systematic review</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2><span class="section-num">06</span>Run It</h2>
+  <pre><code>python rapid_review.py</code></pre>
+  <p>Real output captured 2026-07-28 (your live PubMed results will differ,
+  but the 0-included result and its explanation are expected regardless —
+  see the warning box below):</p>
+  <pre><code>All self-checks passed (no network required for these).
+
+Running a time-boxed rapid review...
+
+0 records passed rapid screening.
+(0 is expected here, not a bug: DEFAULT_RULES from Module 8 excludes any
+ record with no abstract, and PubMed's esummary — reused unchanged from
+ Module 4 — never returns one. The same real limitation from Module 8's
+ own demo carries through here, since this module reuses that exact code.)
+
+Rapid Review — Documented Methodology Simplifications
+=======================================================
+
+[Identification]
+  Standard practice: Multiple databases searched (Module 5's default: PubMed + arXiv)
+  This review did:   Single source searched (PubMed only)
+  Why:               Time constraint...
+
+[Screening] ...
+[Quality appraisal] ...
+
+The reduced risk-of-bias checklist, applied to one fictional study
+  proportion = 0.50  band = 'some concerns'
+  NOTE: this study's selective-reporting risk was never assessed at all —
+  not scored as low risk, simply never checked.</code></pre>
+
+  <h2><span class="section-num">07</span>Brain Exercise</h2>
+  <div class="brain-exercise">
+    <details>
+      <summary>The demo's 0-included result is the same real limitation Module 8 hit. Why does that repetition matter, instead of being an annoying coincidence?</summary>
+      <div class="answer">
+        Because it's direct proof this module actually reuses Module 8's
+        real code rather than a simplified reimplementation of it. If this
+        module had its own separate, lighter-weight screening logic, there
+        would be no reason for Module 4's abstract-availability gap to
+        resurface here at all. The fact that it does — unprompted, as a
+        genuine consequence of calling the real <code>screen()</code> and
+        real <code>DEFAULT_RULES</code> — is exactly the kind of evidence
+        this course treats as more trustworthy than a description of
+        intended behavior.
+      </div>
+    </details>
+  </div>
+
+  <h2><span class="section-num">08</span>There Are No Dumb Questions</h2>
+  <div class="qa-entry">
+    <div class="q">Why not just skip the risk-of-bias appraisal entirely, the way Module 21's scoping review does?</div>
+    <div class="a">Because they're compressing for different reasons. Module 21 skips appraisal because a scoping review's goal genuinely doesn't call for it — full stop, regardless of time available. A rapid review still wants to know something about study quality; it just can't afford the full checklist under its time constraint. Reduced appraisal, not omitted appraisal, is the honest reflection of that different motivation.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">Could `RapidReviewLog` be reused for a different kind of time-boxed adaptation, not just this specific set of three simplifications?</div>
+    <div class="a">Yes — `add()` takes any stage name, standard practice, rapid practice, and rationale as plain strings, with no dependency on which specific simplifications this module happens to make. A different rapid-review configuration (say, skipping full-text eligibility entirely) could log that decision through the exact same class.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">Is a rapid review with these three simplifications still trustworthy?</div>
+    <div class="a">Trustworthy for what it honestly claims to be — a faster, lower-coverage, lower-certainty review, disclosed as such. It would not be trustworthy if presented as equivalent to a full systematic review, which is precisely the misrepresentation `RapidReviewLog` exists to prevent.</div>
+  </div>
+
+  <h2><span class="section-num">09</span>What's Next</h2>
+  <p>Module 23 adapts the engine again — this time to analyze the corpus
+  itself as a citation network, rather than synthesizing what's inside
+  each paper.</p>
+
+  <div class="module-footer-nav">
+    <div class="prev"><a href="../21_scoping_review_mapper/tutorial.html">← Module 21: Scoping Review Mapper</a></div>
+    <div class="next"><a href="../23_bibliometric_network_analyzer/tutorial.html">Module 23: Bibliometric Network Analyzer →</a></div>
+  </div>
+</div>
+</body>
+</html>
