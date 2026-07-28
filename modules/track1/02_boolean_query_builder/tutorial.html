@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Module 2: Boolean Query Builder</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+<style>:root{--accent:#5b9dd9;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Module 2 — Track 1: Core Engine</span>Boolean Query Builder</h1>
+
+  <div class="prereq-tags">
+    <span class="status-badge">Prerequisites:</span>
+    <a href="../../../prerequisites/prereq_boolean_search.html">Boolean Search & Controlled Vocabulary</a>
+  </div>
+
+  <h2><span class="section-num">00</span>Before You Start</h2>
+  <p>You need Prerequisite 2 (AND/OR/NOT, controlled vocabulary) and the
+  finished <a href="../01_research_question_formalizer/tutorial.html">Module 1</a> —
+  this module consumes the exact <code>ResearchQuestion</code> object
+  Module 1 produces.</p>
+
+  <h2><span class="section-num">01</span>The Big Analogy</h2>
+  <div class="analogy-box">
+    <span class="label">Casting nets, not one line at a time</span>
+    Fishing with a single hook for "remote work" catches only papers using
+    that exact phrase. Cast a net instead — one net per concept, woven from
+    every synonym you can think of ("remote work" OR "telecommut*" OR "work
+    from home") — and anything matching any strand gets caught. That net is
+    one OR-group.
+    <br><br>
+    Now put two nets in the boat's path, one after the other: a fish only
+    ends up in your hold if it passed through <em>both</em> the population
+    net and the intervention net. That's <code>AND</code> joining two
+    OR-groups.
+    <br><br>
+    And here's the part that surprises people: this module deliberately
+    doesn't cast a net for "productivity" or "in-office work" at all. Not
+    because those concepts don't matter — because casting a net that early
+    risks losing fish that are exactly what you want but never said the
+    word "productivity" in the water where your net can see it (the title
+    or abstract). Those two nets get cast later, at the dock, once you can
+    actually pick up each catch and look closely — that's screening
+    (Module 8), not searching.
+  </div>
+
+  <h2><span class="section-num">02</span>What Happens, Step by Step</h2>
+  <ol class="checklist">
+    <li>You give <code>build_query()</code> a validated <code>ResearchQuestion</code> plus a dict of <code>SlotTerms</code> — free-text synonyms and optional controlled-vocabulary terms, per slot</li>
+    <li>If you don't specify which slots participate, it defaults to <code>DEFAULT_SEARCH_SLOTS[framework]</code> — population + intervention for PICO, deliberately excluding comparison and outcome</li>
+    <li>For each participating slot, <code>build_or_group()</code> quotes any multi-word term, tags controlled-vocabulary terms with <code>MeSH:</code> (or whatever vocabulary tag you specify), and joins everything inside that slot with <code>OR</code></li>
+    <li>The finished OR-groups are joined with <code>AND</code> into one search string</li>
+    <li>If a participating slot has no <code>SlotTerms</code> at all, or a <code>SlotTerms</code> with nothing in it, construction stops with a named error instead of producing a broken query</li>
+  </ol>
+
+  <h2><span class="section-num">03</span>A Map of the State</h2>
+  <div class="diagram-box">
+    <pre style="border:none; background:none; padding:0;"><code>ResearchQuestion (from Module 1)
+  framework = PICO
+  slots = {population: "knowledge workers", intervention: "remote work
+           arrangements", comparison: "in-office work", outcome: "..."}
+        │
+        ▼
+DEFAULT_SEARCH_SLOTS[PICO] = ["population", "intervention"]
+        │                              (comparison, outcome: NOT searched)
+        ▼
+terms = {
+  population:   SlotTerms(free_text=["knowledge workers", "office workers",
+                                      "employees"])
+  intervention: SlotTerms(free_text=["remote work", "telecommut*", ...],
+                           controlled_vocab=["Telework"])
+}
+        │
+        ▼
+build_or_group("population", ...)   → ("knowledge workers" OR "office
+                                        workers" OR employees)
+build_or_group("intervention", ...) → ("remote work" OR telecommut* OR
+                                        ... OR MeSH:"Telework")
+        │
+        ▼
+" AND ".join(groups)
+        │
+        ▼
+("knowledge workers" OR "office workers" OR employees) AND ("remote work"
+ OR telecommut* OR "work from home" OR "hybrid work" OR MeSH:"Telework")</code></pre>
+  </div>
+
+  <h2><span class="section-num">04</span>The Code, Explained</h2>
+  <p>The whole compilation step, in full:</p>
+  <pre><code>def build_query(rq, terms, search_slots=None):
+    search_slots = search_slots or DEFAULT_SEARCH_SLOTS[rq.framework]
+    groups = []
+    for slot in search_slots:
+        if slot not in terms:
+            raise MissingTermsError(slot)
+        groups.append(build_or_group(slot, terms[slot]))
+    return " AND ".join(groups)</code></pre>
+  <p>Notice what this function does <em>not</em> do: it never reads
+  <code>rq.slots</code> directly to build search terms. The
+  <code>ResearchQuestion</code>'s slot <em>values</em> ("knowledge
+  workers") are what a human wrote when formalizing the question in Module
+  1 — a single string, not a set of synonyms. The actual search terms
+  always come from the separately-supplied <code>terms</code> dict, because
+  a real search needs many synonyms per concept, not just the one phrase a
+  human happened to type first.</p>
+
+  <h2><span class="section-num">05</span>Limits / What You Cannot Do Yet</h2>
+  <div class="compare-grid">
+    <div class="compare-col cant">
+      <h4>Can't do yet</h4>
+      <ul>
+        <li>Actually query a database — this produces a string, no network call happens</li>
+        <li>Detect that "work-from-home" needs quoting (no space, so <code>quote_if_phrase()</code> misses it — a real, documented limitation)</li>
+        <li>Automatically generate synonyms — you still supply the <code>SlotTerms</code> yourself</li>
+      </ul>
+    </div>
+    <div class="compare-col can">
+      <h4>Can do</h4>
+      <ul>
+        <li>Turn a structured question into one reproducible, auditable search string</li>
+        <li>Show, concretely, how widening which slots you search changes the string (and why that matters)</li>
+        <li>Catch a missing or empty slot before a malformed query goes anywhere</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2><span class="section-num">06</span>Run It</h2>
+  <pre><code>python query_builder.py</code></pre>
+  <p>Expected output (captured from an actual run):</p>
+  <pre><code>All self-checks passed.
+
+======================================================================
+EXAMPLE 1 — default search slots (population + intervention only)
+======================================================================
+("knowledge workers" OR "office workers" OR employees) AND ("remote work" OR telecommut* OR "work from home" OR "hybrid work" OR MeSH:"Telework")
+
+======================================================================
+EXAMPLE 2 — explicitly widening to include outcome
+======================================================================
+("knowledge workers" OR "office workers" OR employees) AND ("remote work" OR telecommut* OR "work from home" OR "hybrid work" OR MeSH:"Telework") AND (productivity OR "job performance" OR "work output")
+
+Notice this is a STRICTER (lower-recall) search: any real study
+that never says 'productivity' or a synonym in its title/abstract
+would now be excluded, even if it's exactly what we're looking for.
+
+======================================================================
+EXAMPLE 3 — missing terms raises MissingTermsError
+======================================================================
+Raised as expected: no SlotTerms provided for search slot "intervention"</code></pre>
+
+  <div class="warning-box">
+    <strong>Getting an ImportError instead?</strong> Module 2 imports
+    Module 1's <code>formalizer.py</code> via a relative path — run
+    <code>query_builder.py</code> from inside its own directory (not from
+    the repo root), and make sure
+    <code>01_research_question_formalizer/</code> hasn't been moved or
+    renamed. See <a href="DECISIONS.md">DECISIONS.md</a> for why the
+    import works this way.
+  </div>
+
+  <h2><span class="section-num">07</span>Brain Exercise</h2>
+  <div class="brain-exercise">
+    <details>
+      <summary>Example 2's query is described as "stricter" and "lower-recall." Why would a reviewer ever deliberately choose the stricter version, if it risks missing relevant studies?</summary>
+      <div class="answer">
+        When the broader search returns too many irrelevant records to
+        screen by hand within a realistic timeframe. Sensitivity (recall)
+        and manageable volume are in tension — a rapid review
+        (<a href="../../track2/22_rapid_review_adapter/tutorial.html">Module 22</a>)
+        might deliberately trade some recall for a search a single
+        reviewer can actually finish in the time available, as long as
+        that tradeoff is documented rather than hidden. The "right"
+        choice depends on the review's actual constraints, not a universal
+        rule — which is exactly why this module makes the choice explicit
+        and visible rather than baking in one fixed default silently.
+      </div>
+    </details>
+  </div>
+
+  <h2><span class="section-num">08</span>There Are No Dumb Questions</h2>
+  <div class="qa-entry">
+    <div class="q">Why doesn't the query builder just read the free-text value already sitting in <code>rq.slots["population"]</code> instead of making me supply a whole separate <code>SlotTerms</code> dict?</div>
+    <div class="a">Because "knowledge workers" alone would miss every paper that instead said "office employees" or "salaried staff." The whole point of a search strategy is synonym coverage — one phrase per concept is exactly what a comprehensive search can't afford to rely on.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">What stops someone from accidentally including a controlled-vocabulary term that doesn't actually exist in the target database?</div>
+    <div class="a">Nothing in this module — it has no connection to a live database yet, so it can't validate that a MeSH term is real. That check becomes possible starting in <a href="../04_live_api_connector/tutorial.html">Module 4</a>, once there's an actual API to ask.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">Could I use this to build an OR-only or NOT-containing query instead of AND-of-ORs?</div>
+    <div class="a">Not without modifying the code — <code>build_query()</code> always joins slot-groups with AND, by design, because AND-of-ORs is the standard, well-understood shape for a PICO-style search. NOT is deliberately absent everywhere in this module, for the reason covered in Prerequisite 2's warning box: it silently discards relevant studies too easily.</div>
+  </div>
+
+  <h2><span class="section-num">09</span>What's Next</h2>
+  <p>A boolean query string is still just text — nothing has been searched
+  yet, and there's nowhere to put the results even if it had been. Module 3
+  builds the canonical <code>Record</code> shape that every result, from
+  every source, will eventually get normalized into.</p>
+
+  <div class="module-footer-nav">
+    <div class="prev"><a href="../01_research_question_formalizer/tutorial.html">← Module 1: Research Question Formalizer</a></div>
+    <div class="next"><a href="../03_bibliographic_record_model/tutorial.html">Module 3: Bibliographic Record Model →</a></div>
+  </div>
+</div>
+</body>
+</html>
