@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Module 20: Review Report Compiler</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+<style>:root{--accent:#b8860b;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Module 20 — Track 1: Core Engine — Capstone of Track 1</span>Review Report Compiler</h1>
+
+  <div class="warning-box">Needs internet access — the live search-and-screen section reuses Modules 4-8.</div>
+
+  <h2><span class="section-num">00</span>Before You Start</h2>
+  <p>This module imports and calls real functions from <strong>fourteen</strong>
+  prior modules. If any of Modules 1, 2, 3, 5, 6, 7, 8, 10, 12, 14, 16, 17,
+  18, or 19 feels unfamiliar, this is the module that will make that gap
+  obvious — go back and finish it first.</p>
+
+  <h2><span class="section-num">01</span>The Big Analogy</h2>
+  <div class="analogy-box">
+    <span class="label">Expediting</span>
+    In a real restaurant kitchen, a dozen different stations each
+    independently prepare one component — the grill station sears the
+    protein, the sauté station makes the sauce, the garde manger plates
+    the garnish. None of them alone is dinner. The expediter is the person
+    standing at the pass who takes every finished component and plates
+    them together onto one plate, in the right arrangement, and sends out
+    one finished dish.
+    <br><br>
+    <code>compile_report()</code> is the expediter. It doesn't cook
+    anything itself — every real ingredient (the research question, the
+    live search results, the PRISMA diagram, the evidence table, the
+    forest and funnel plots) was already prepared by a station that came
+    before it. This module's entire job is arranging them, correctly, onto
+    one plate.
+  </div>
+
+  <h2><span class="section-num">02</span>What Happens, Step by Step</h2>
+  <ol class="checklist">
+    <li><strong>Formalize + search</strong> (Modules 1-2): build the research question and boolean query</li>
+    <li><strong>Search, aggregate, dedup, track, screen</strong> (Modules 4-8), for real, live: PubMed + arXiv results merged, deduplicated, logged into a <code>PrismaFlowTracker</code>, screened</li>
+    <li><strong>Render the PRISMA diagram</strong> (Module 12) from that tracker's real state</li>
+    <li><strong>Extract and table</strong> (Modules 10, 14): this course's established illustrative studies, extracted and assembled into an evidence table</li>
+    <li><strong>Pool and plot</strong> (Modules 16-18): compute effect sizes, pool them (random-effects), render a forest plot</li>
+    <li><strong>Check for bias</strong> (Module 19): Egger's test and a funnel plot on the same pooled studies</li>
+    <li><strong>Assemble</strong>: every result above gets escaped and interpolated into one HTML document, saved alongside its three image assets</li>
+  </ol>
+
+  <h2><span class="section-num">03</span>A Map of the State</h2>
+  <div class="diagram-box">
+    <pre style="border:none; background:none; padding:0;"><code>Module 1-2 ──► ResearchQuestion, search_query
+                                                    │
+Module 4-8 ──► PrismaFlowTracker (real, live)       │
+  (real search)    │                                │
+                    ▼                                ▼
+              Module 12 ──► prisma_flow.svg          │
+                                                       ▼
+Module 10/14 ──► EvidenceTable (illustrative)  ──►  ┌─────────────┐
+                                                      │             │
+Module 16-18 ──► MetaAnalysisResult,                 │  compile_   │──► review_report.html
+  (illustrative)   forest_plot.png                   │  report()   │    + prisma_flow.svg
+                                                      │             │    + forest_plot.png
+Module 19 ──► EggersTestResult, funnel_plot.png ──►  └─────────────┘    + funnel_plot.png</code></pre>
+  </div>
+
+  <h2><span class="section-num">04</span>The Code, Explained</h2>
+  <p>The whole module is best understood as one long, linear pipeline —
+  here's the connective tissue between two of its stages:</p>
+  <pre><code>tracker = PrismaFlowTracker()
+tracker.log_identification("PubMed", len(pubmed_records))
+tracker.log_identification("arXiv", len(arxiv_records))
+tracker.log_deduplication(len(corpus) - len(dedup_result.unique_records))
+tracker.log_screening(screening_result.excluded_by_reason(), included_count=len(screening_result.included))
+tracker.validate_conservation()
+
+prisma_svg = render_prisma_svg(tracker, title="Remote Work & Productivity — PRISMA Flow")
+save_svg(prisma_svg, output_dir / "prisma_flow.svg")</code></pre>
+  <p>Nothing here is new logic — every function called is exactly the
+  function its own module already built and verified. This module adds
+  almost no new ideas; it adds <em>sequence</em>.</p>
+
+  <h2><span class="section-num">05</span>Limits / What You Cannot Do Yet</h2>
+  <div class="compare-grid">
+    <div class="compare-col cant">
+      <h4>Can't do yet</h4>
+      <ul>
+        <li>Screen the live-fetched records all the way through to real quantitative synthesis — the live and illustrative halves are thematically aligned, not the same records</li>
+        <li>Export to PDF or Word — HTML only (a browser's own "print to PDF" gets you the rest of the way)</li>
+        <li>Regenerate incrementally — every run recompiles everything from scratch, including fresh live network calls</li>
+      </ul>
+    </div>
+    <div class="compare-col can">
+      <h4>Can do</h4>
+      <ul>
+        <li>Produce one real, complete, openable report from a single function call</li>
+        <li>Prove every section is backed by a real, checkable artifact — not just prose describing what a report would contain</li>
+        <li>Generate a narrative conclusion that honestly reflects its own numbers, hedged exactly as much as the data warrants</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2><span class="section-num">06</span>Run It</h2>
+  <pre><code>python report_compiler.py</code></pre>
+  <p>Real output captured 2026-07-28 (your live search counts will differ):</p>
+  <pre><code>All self-checks passed.
+
+Report compiled: review_report.html (3787 characters)
+  contains section 'Research Question': True
+  contains section 'Search Strategy': True
+  contains section 'PRISMA': True
+  contains section 'Evidence Table': True
+  contains section 'Meta-Analysis': True
+  contains section 'Publication Bias': True
+  contains section 'Narrative Synthesis': True
+  asset prisma_flow.svg exists: True
+  asset forest_plot.png exists: True
+  asset funnel_plot.png exists: True</code></pre>
+  <p>Open <code>review_report.html</code> in a browser afterward to see the
+  actual assembled report, images and all.</p>
+
+  <h2><span class="section-num">07</span>Brain Exercise</h2>
+  <div class="brain-exercise">
+    <details>
+      <summary>The report's narrative synthesis (Section 7) counts "the 4 records that passed title/abstract screening in the live search" in the same sentence as the illustrative meta-analysis numbers. Is that a contradiction?</summary>
+      <div class="answer">
+        It's a boundary the report is honest about, not a hidden
+        contradiction. Read closely, the sentence describes two different
+        things happening to be discussed together: the live search found
+        4 real records passing screening, and <em>separately</em>, a set
+        of illustrative studies was synthesized to demonstrate the
+        statistical machinery. Nothing in the report claims those 4 real
+        records are the same studies that got pooled into the odds ratio
+        — because they aren't. This is the same honesty principle from
+        Module 9 and Module 16 carried all the way to the final report:
+        say what's real and what's illustrative, don't blur the two
+        together for a tidier-looking conclusion.
+      </div>
+    </details>
+  </div>
+
+  <h2><span class="section-num">08</span>There Are No Dumb Questions</h2>
+  <div class="qa-entry">
+    <div class="q">Why compile a report at all, instead of just running each module separately and reading their outputs one at a time?</div>
+    <div class="a">Because a real review's audience — a journal, a policy team, a supervisor — doesn't want fourteen separate terminal outputs. Part of this module's own proof is that a pipeline built as many small, independently-verifiable pieces can still converge into one coherent, standalone artifact, which is exactly the causal claim this module set out to demonstrate.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">What happens if one of the fourteen imported modules has been modified since this module was built?</div>
+    <div class="a">This module has no independent copy of any prior module's logic — it imports and calls the real, current functions every time it runs. If Module 8's screening rules changed, this module's report would reflect that change automatically the next time it's run, for better or worse. That's a real, direct consequence of reuse rather than duplication, the same principle every module since Module 4 has followed.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">Could this module be adapted for one of Track 2's review types instead of a PRISMA-style systematic review?</div>
+    <div class="a">Structurally, yes — swap which modules' outputs get compiled (a scoping review's charting form instead of a meta-analysis, for instance), and the "gather real artifacts, assemble one document" pattern still applies. That's genuinely close to what several Track 2 modules do next.</div>
+  </div>
+
+  <h2><span class="section-num">09</span>Track 1 Complete — What's Next</h2>
+  <p>Twenty modules, and the PRISMA-style systematic review engine is done
+  — a real research question became a real search, a real live pipeline,
+  a real diagram, a real synthesis, and a real report. Track 2 starts now:
+  the same engine, adapted into scoping reviews, rapid reviews,
+  bibliometric analysis, qualitative synthesis, umbrella reviews, living
+  reviews, USENIX-style positioning, and thesis-chapter writing — proving
+  the kernel built in Track 1 generalizes, rather than only ever running
+  one program.</p>
+
+  <div class="module-footer-nav">
+    <div class="prev"><a href="../19_publication_bias_detector/tutorial.html">← Module 19: Publication Bias Detector</a></div>
+    <div class="next"><a href="../../track2/21_scoping_review_mapper/tutorial.html">Module 21: Scoping Review Mapper →</a></div>
+  </div>
+</div>
+</body>
+</html>

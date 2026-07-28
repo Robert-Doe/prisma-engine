@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="910.0" height="278.0" viewBox="0 0 910.0 278.0">
+<defs><marker id="arrowhead" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#333333"/></marker></defs>
+<rect x="0" y="0" width="910.0" height="278.0" fill="white"/>
+<text x="455.0" y="25" font-size="16" font-family="Arial, sans-serif" text-anchor="middle" font-weight="bold">Remote Work &amp; Productivity — PRISMA Flow</text>
+<rect x="60.0" y="50.0" width="420" height="52" fill="#dbe9f7" stroke="#333333" stroke-width="1.5" rx="5"/>
+<text x="270.0" y="72.0" font-size="12.5" font-family="Arial, sans-serif" text-anchor="middle">Records identified from: PubMed (n = 5); arXiv (n = 5).</text>
+<text x="270.0" y="88.0" font-size="12.5" font-family="Arial, sans-serif" text-anchor="middle">Total identified (n = 10)</text>
+<line x1="270.0" y1="102.0" x2="270.0" y2="152.0" stroke="#333333" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+<rect x="60.0" y="152.0" width="420" height="36" fill="#dbe9f7" stroke="#333333" stroke-width="1.5" rx="5"/>
+<text x="270.0" y="174.0" font-size="12.5" font-family="Arial, sans-serif" text-anchor="middle">Records screened (title/abstract) (n = 10)</text>
+<rect x="530.0" y="152.0" width="340" height="84" fill="#f7e3d8" stroke="#333333" stroke-width="1.5" rx="5"/>
+<text x="700.0" y="174.0" font-size="12.5" font-family="Arial, sans-serif" text-anchor="middle">Records excluded (n = 6): no abstract</text>
+<text x="700.0" y="190.0" font-size="12.5" font-family="Arial, sans-serif" text-anchor="middle">available for screening (n = 5); no</text>
+<text x="700.0" y="206.0" font-size="12.5" font-family="Arial, sans-serif" text-anchor="middle">productivity/performance/output keyword</text>
+<text x="700.0" y="222.0" font-size="12.5" font-family="Arial, sans-serif" text-anchor="middle">found (n = 1)</text>
+<line x1="480.0" y1="170.0" x2="530.0" y2="194.0" stroke="#333333" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+<line x1="270.0" y1="188.0" x2="270.0" y2="238.0" stroke="#333333" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+<rect x="60.0" y="238.0" width="420" height="36" fill="#dbe9f7" stroke="#333333" stroke-width="1.5" rx="5"/>
+<text x="270.0" y="260.0" font-size="12.5" font-family="Arial, sans-serif" text-anchor="middle">Reports assessed for eligibility (n = 4)</text>
+</svg>

@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Review Report: Remote Work and Productivity</title>
+<style>
+body { font-family: Georgia, serif; max-width: 800px; margin: 40px auto; padding: 0 20px; line-height: 1.6; }
+h1, h2 { font-family: Arial, sans-serif; }
+table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+th, td { border: 1px solid #999; padding: 6px 10px; text-align: left; font-size: 0.9em; }
+th { background: #eee; }
+img { max-width: 100%; }
+.stage { font-family: monospace; background: #f5f5f5; padding: 8px 12px; margin: 4px 0; }
+</style>
+</head>
+<body>
+<h1>Systematic Review Report: Remote Work and Productivity</h1>
+
+<h2>1. Research Question</h2>
+<p><strong>Framework:</strong> PICO</p>
+<p><strong>Question:</strong> Does remote work affect employee productivity compared to in-office work?</p>
+<ul><li><strong>population:</strong> knowledge workers</li><li><strong>intervention:</strong> remote work arrangements</li><li><strong>outcome:</strong> measured or self-reported productivity</li><li><strong>comparison:</strong> in-office work</li></ul>
+
+<h2>2. Search Strategy</h2>
+<p><code>(&quot;knowledge workers&quot; OR &quot;office workers&quot; OR employees) AND (&quot;remote work&quot; OR telecommut* OR &quot;work from home&quot; OR &quot;hybrid work&quot; OR MeSH:&quot;Teleworking&quot;)</code></p>
+
+<h2>3. Study Selection (PRISMA)</h2>
+<div class="stage">Identified: 10 (PubMed: 5, arXiv: 5)</div>
+<div class="stage">After deduplication: 10 (0 duplicates removed)</div>
+<div class="stage">Passed title/abstract screening: 4 (6 excluded: {'no abstract available for screening': 5, 'no productivity/performance/output keyword found': 1})</div>
+<img src="prisma_flow.svg" alt="PRISMA flow diagram">
+
+<h2>4. Evidence Table</h2>
+<p>Illustrative extracted studies (see Modules 10/14):</p>
+<table><tr><th>title</th><th>year</th><th>sample_size</th><th>study_design</th><th>effect_direction</th><th>comparison_group</th><th>outcome_measure</th></tr><tr><td>A Longitudinal Comparison of Remote and In-Office Knowledge Worker Output</td><td>2023</td><td>210</td><td>RCT</td><td>positive</td><td>in-office workers</td><td>output per hour</td></tr><tr><td>Telecommuting and Job Performance: A Cohort Study</td><td>2021</td><td>640</td><td>cohort</td><td>no effect</td><td>pre-pandemic baseline</td><td></td></tr><tr><td>Mixed Effects of Hybrid Schedules on Team Productivity</td><td>2022</td><td>88</td><td>cross-sectional</td><td>mixed</td><td>fully in-office teams</td><td>self-reported productivity</td></tr></table>
+
+<h2>5. Meta-Analysis</h2>
+<p>Pooled odds ratio (random-effects): <strong>1.866</strong>
+95% CI [0.675, 5.154] — heterogeneity I² = 84.8%</p>
+<img src="forest_plot.png" alt="Forest plot">
+
+<h2>6. Publication Bias</h2>
+<p>Egger's test intercept = -5.645, t = -0.375
+(df=3), significant at p&lt;0.05: False.
+<em>Caveat: only 5 studies — below the ~10-study threshold the
+Cochrane Handbook recommends for interpreting this test.</em></p>
+<img src="funnel_plot.png" alt="Funnel plot">
+
+<h2>7. Narrative Synthesis</h2>
+<p>Across the 4 records that passed
+title/abstract screening in the live search, and the illustrative set of
+quantitative studies synthesized above, the pooled random-effects odds
+ratio of 1.87 suggests a possible positive association between
+remote work and productivity, but its 95% confidence interval
+[0.675, 5.154] crosses the no-effect value of 1.0,
+and heterogeneity is substantial (I² = 84.8%). This combination — a
+point estimate favoring an effect, but a confidence interval that does not
+rule out no effect, alongside high heterogeneity — means the honest
+conclusion is "an effect in this direction is plausible but not
+established," not "remote work improves productivity."</p>
+
+</body>
+</html>
