@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Module 15: Thematic Coding Engine</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+<style>:root{--accent:#7d5ba6;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Module 15 — Track 1: Core Engine</span>Thematic Coding Engine</h1>
+
+  <h2><span class="section-num">00</span>Before You Start</h2>
+  <p>No new prerequisite page — this module is the mechanical version of
+  the same instinct behind
+  <a href="../../../prerequisites/prereq_synthesis_vs_summary.html">Synthesis vs. Summary</a>:
+  organizing by idea instead of by source, just applied to qualitative
+  excerpts instead of whole papers.</p>
+
+  <h2><span class="section-num">01</span>The Big Analogy</h2>
+  <div class="analogy-box">
+    <span class="label">Sticky notes on a wall</span>
+    A researcher reads through interview transcripts and slaps a sticky
+    note with a short label on every interesting bit — "feels
+    disconnected," "gets more done," one note per idea, as they go. That's
+    open coding: bottom-up, one excerpt at a time, no predetermined
+    categories. Later, they stand back from the wall and start physically
+    clustering sticky notes that seem to be circling the same underlying
+    idea into groups — "these five are all really about social connection,"
+    "these three are all about how the workday itself changed." That's
+    axial coding: relating the codes you already have to each other.
+    <br><br>
+    <code>open_code()</code> is the sticky-note-writing pass.
+    <code>axial_code()</code> is standing back and clustering the wall.
+    Neither step invents structure that wasn't in the data — both just
+    make the structure visible and checkable.
+  </div>
+
+  <h2><span class="section-num">02</span>What Happens, Step by Step</h2>
+  <ol class="checklist">
+    <li><code>open_code()</code> checks each excerpt against every code's trigger phrases — an excerpt can match zero, one, or several codes</li>
+    <li>Each excerpt becomes a <code>CodedExcerpt</code>, carrying whichever codes actually matched</li>
+    <li><code>axial_code()</code> groups excerpts by theme, based on <code>THEME_GROUPINGS</code> mapping each theme to the set of open codes that belong to it</li>
+    <li>An excerpt whose codes span two themes appears under both — nothing forces a false single categorization</li>
+    <li>An excerpt matching no code at all appears in neither theme, reported separately as genuinely off-topic</li>
+  </ol>
+
+  <h2><span class="section-num">03</span>A Map of the State</h2>
+  <div class="diagram-box">
+    <pre style="border:none; background:none; padding:0;"><code>CODING_RULES = {
+  "social_isolation":    ["don't talk to", "miss being able to", ...],
+  "fewer_interruptions": ["more done without", "nobody stopping by", ...],
+  "blurred_boundaries":  ["skip lunch", "never really log off", ...],
+}
+THEME_GROUPINGS = {
+  "Disrupted Social Connection": {"social_isolation"},
+  "Changed Work Rhythm":         {"fewer_interruptions", "blurred_boundaries"},
+}
+
+"I've started scheduling coffee chats just to feel connected to my team."
+        │
+        ▼  open_code()
+matches "feel connected" trigger  ->  codes = ["social_isolation"]
+        │
+        ▼  axial_code()
+"social_isolation" ∈ THEME_GROUPINGS["Disrupted Social Connection"]
+        │
+        ▼
+appears under theme: "Disrupted Social Connection"
+
+"I never really log off, and I don't talk to anyone all day." (self-check)
+        │
+        ▼  matches BOTH "never really log off" and "don't talk to"
+codes = ["blurred_boundaries", "social_isolation"]
+        │
+        ▼
+appears under BOTH themes — not forced into just one</code></pre>
+  </div>
+
+  <h2><span class="section-num">04</span>The Code, Explained</h2>
+  <pre><code>def open_code(excerpts, coding_rules):
+    coded = []
+    for study_title, text in excerpts:
+        lowered = text.lower()
+        codes = [code for code, triggers in coding_rules.items()
+                 if any(t in lowered for t in triggers)]
+        coded.append(CodedExcerpt(study_title=study_title, excerpt=text, codes=codes))
+    return coded
+
+def axial_code(coded_excerpts, theme_groupings):
+    themed = {theme: [] for theme in theme_groupings}
+    for excerpt in coded_excerpts:
+        for theme, member_codes in theme_groupings.items():
+            if member_codes & set(excerpt.codes):     # set intersection
+                themed[theme].append(excerpt)
+    return themed</code></pre>
+  <p>The set intersection (<code>member_codes & set(excerpt.codes)</code>)
+  is what lets one excerpt land in more than one theme — there's no
+  <code>break</code> or early return stopping the loop once one theme
+  matches.</p>
+
+  <h2><span class="section-num">05</span>Limits / What You Cannot Do Yet</h2>
+  <div class="compare-grid">
+    <div class="compare-col cant">
+      <h4>Can't do yet</h4>
+      <ul>
+        <li>Discover codes automatically from unlabeled text — trigger phrases have to be written by a human first</li>
+        <li>Handle negation ("I don't feel isolated at all" would still trigger on "isolat")</li>
+        <li>Produce a written synthesis — this module organizes excerpts into themes, it doesn't write the prose that interprets them (that's closer to Module 24)</li>
+      </ul>
+    </div>
+    <div class="compare-col can">
+      <h4>Can do</h4>
+      <ul>
+        <li>Apply a coding scheme identically and repeatably across any number of excerpts</li>
+        <li>Represent an excerpt under multiple themes when it genuinely belongs to more than one</li>
+        <li>Correctly leave an off-topic excerpt out of every theme, rather than forcing it somewhere</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2><span class="section-num">06</span>Run It</h2>
+  <pre><code>python thematic_coding.py</code></pre>
+  <p>Expected output (deterministic, no network involved):</p>
+  <pre><code>All self-checks passed.
+
+Open coding: each excerpt tagged independently
+  [Interview P1] codes=['social_isolation']
+    'I miss being able to just turn to someone and ask a quick question.'
+  [Interview P2] codes=['social_isolation']
+    "Some days I don't talk to another human being until my partner gets home."
+  [Interview P3] codes=['fewer_interruptions']
+    'I actually get more done without people stopping by my desk all day.'
+  [Interview P4] codes=['social_isolation']
+    "I've started scheduling coffee chats just to feel connected to my team."
+  [Interview P5] codes=['blurred_boundaries']
+    'Nobody notices if I skip lunch and just keep working straight through.'
+  [Interview P6] codes=[]
+    'Honestly my day is about the same as it was in the office.'
+
+Axial coding: open codes grouped into higher-level themes
+
+  THEME: Disrupted Social Connection (3 excerpts)
+    - [Interview P1] ...  (codes: ['social_isolation'])
+    - [Interview P2] ...  (codes: ['social_isolation'])
+    - [Interview P4] ...  (codes: ['social_isolation'])
+
+  THEME: Changed Work Rhythm (2 excerpts)
+    - [Interview P3] ...  (codes: ['fewer_interruptions'])
+    - [Interview P5] ...  (codes: ['blurred_boundaries'])
+
+Excerpts with no code assigned (genuinely off-topic, not forced into a theme): 1
+  [Interview P6] 'Honestly my day is about the same as it was in the office.'</code></pre>
+
+  <h2><span class="section-num">07</span>Brain Exercise</h2>
+  <div class="brain-exercise">
+    <details>
+      <summary>Why does `axial_code()` loop through every theme for every excerpt instead of stopping at the first matching theme?</summary>
+      <div class="answer">
+        Because stopping early would silently throw away real information
+        whenever an excerpt's codes span more than one theme — exactly the
+        "S5" case in the self-checks, which genuinely discusses both
+        disrupted social connection and blurred boundaries in the same
+        sentence. A qualitative excerpt reflecting two real, distinct ideas
+        at once is common, not an edge case to suppress. The set
+        intersection check runs for every theme specifically so that
+        reality gets represented instead of forced into a false single bucket.
+      </div>
+    </details>
+  </div>
+
+  <h2><span class="section-num">08</span>There Are No Dumb Questions</h2>
+  <div class="qa-entry">
+    <div class="q">Isn't keyword matching a pretty crude way to do something as nuanced as qualitative coding?</div>
+    <div class="a">Yes, genuinely — see the Limits section's negation example. Real qualitative coding is done by trained humans, often two independently reconciling disagreements, precisely because it requires judgment a keyword rule can't replicate. This module proves the <em>structure</em> of the process (bottom-up codes, then higher-level grouping) is mechanical and repeatable — it doesn't claim the specific code assignments are as trustworthy as a real researcher's.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">What would happen if two themes in `THEME_GROUPINGS` shared an open code?</div>
+    <div class="a">Any excerpt carrying that code would appear under both themes — the set-intersection check has no concept of themes being mutually exclusive. That's not a bug; a code genuinely belonging to two real themes is a legitimate coding-scheme design choice, not an error state.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">How is this different from Module 10's extraction schema?</div>
+    <div class="a">Module 10 validates that a fixed, predetermined set of fields got filled in correctly for a study with quantitative data — closed-ended, always the same slots. This module discovers which codes apply to a given excerpt from an open-ended set — an excerpt might match three codes, one, or none, which isn't how a validated form works at all.</div>
+  </div>
+
+  <h2><span class="section-num">09</span>What's Next</h2>
+  <p>Phase 2 now shifts fully toward quantitative synthesis. Module 16
+  builds the effect-size calculator — the first step in turning raw
+  numbers from included studies into a common, poolable unit.</p>
+
+  <div class="module-footer-nav">
+    <div class="prev"><a href="../14_evidence_table_builder/tutorial.html">← Module 14: Evidence Table Builder</a></div>
+    <div class="next"><a href="../16_effect_size_calculator/tutorial.html">Module 16: Effect Size Calculator →</a></div>
+  </div>
+</div>
+</body>
+</html>
