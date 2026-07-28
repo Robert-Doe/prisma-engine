@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Module 26: Living Review Updater</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+<style>:root{--accent:#3f8fa5;}</style>
+</head>
+<body>
+<div class="page">
+  <h1><span class="module-kicker">Module 26 — Track 2: Applied Layer</span>Living Review Updater</h1>
+
+  <div class="prereq-tags">
+    <span class="status-badge">Depends on Track 1:</span>
+    <a href="../../track1/05_multi_source_aggregator/tutorial.html">Module 5</a>
+    <a href="../../track1/06_deduplication_engine/tutorial.html">Module 6</a>
+    <a href="../../track1/07_prisma_flow_tracker/tutorial.html">Module 7</a>
+    <a href="../../track1/20_review_report_compiler/tutorial.html">Module 20</a>
+  </div>
+
+  <div class="warning-box">
+    <strong>This module's own first draft had a real bug</strong>, caught by
+    Module 7's conservation check during development, not staged for this
+    tutorial. See Section 04 and the Brain Exercise.
+  </div>
+
+  <h2><span class="section-num">00</span>Before You Start</h2>
+  <p>Read <a href="../../track0_orientation/00_literature_review_landscape/concept_living_review.html">Module 0's Living Systematic Review concept page</a> —
+  this module implements the version-tracked, incrementally-updated
+  lifecycle it describes.</p>
+
+  <h2><span class="section-num">01</span>The Big Analogy</h2>
+  <div class="analogy-box">
+    <span class="label">A motion-detecting security camera, not a nightly re-record</span>
+    One camera re-records an entire empty room from scratch every night,
+    then someone has to rewatch all of it to find the ten seconds that
+    mattered. A better camera remembers what it already saw, and only
+    flags genuinely new motion since the last check.
+    <br><br>
+    <code>run_update()</code> is the second kind of camera.
+    <code>seen_dois</code>, persisted to a real JSON file between runs, is
+    its memory. Every update fetches live results, but only the ones
+    <code>seen_dois</code> doesn't already recognize ever reach dedup and
+    screening — the rest are correctly skipped, not reprocessed.
+  </div>
+
+  <h2><span class="section-num">02</span>What Happens, Step by Step</h2>
+  <ol class="checklist">
+    <li><code>load_state()</code> reads the previous update's <code>LivingReviewState</code> from disk — version number, timestamp, every DOI seen so far, cumulative included count</li>
+    <li>Module 5's <code>search_pubmed()</code> fetches fresh, live results</li>
+    <li>Each fetched record is checked against <code>seen_dois</code> (normalized via Module 6's <code>normalize_doi()</code>) — only genuinely new ones proceed</li>
+    <li>Only the new records go through Module 6's <code>deduplicate()</code> and Module 8's <code>screen()</code> — not the whole historical corpus</li>
+    <li><code>save_state()</code> writes an incremented version, updated <code>seen_dois</code>, and an updated cumulative included count back to disk</li>
+  </ol>
+
+  <h2><span class="section-num">03</span>A Map of the State</h2>
+  <div class="diagram-box">
+    <pre style="border:none; background:none; padding:0;"><code>Update #1 (state.json doesn't exist yet)
+  load_state() -> LivingReviewState(version=0, seen_dois=[])
+  search_pubmed(query) -> 5 live records
+  none in seen_dois -> all 5 are "new"
+  dedup + screen the 5 new records
+  save_state(version=1, seen_dois=[5 DOIs], ...)
+
+Update #2 (run moments later)
+  load_state() -> LivingReviewState(version=1, seen_dois=[5 DOIs from #1])
+  search_pubmed(query) -> the SAME 5 live records (nothing changed in seconds)
+  all 5 already in seen_dois -> 0 are "new"
+  dedup + screen an EMPTY list — correctly nothing to process
+  save_state(version=2, seen_dois=[still the same 5 DOIs], ...)</code></pre>
+  </div>
+
+  <h2><span class="section-num">04</span>The Code, Explained — including the real mistake</h2>
+  <p>The first version of this line logged the wrong count:</p>
+  <pre><code># WRONG (first draft) — logged the full fetch, not just what was actually processed:
+tracker.log_identification("PubMed (this update only)", len(records))
+
+# Running update #2 with this line raised a REAL FlowConservationError:
+#   "screening stage: 5 entered but 0 accounted for (0 included + 0 excluded)"
+# because 5 records were logged as "identified," but 0 of them ever
+# reached dedup/screening — they were all correctly filtered out as
+# already-seen BEFORE the tracker's stages even started.</code></pre>
+  <p>The fix is one word different, but it's the difference between
+  correct and incorrect bookkeeping:</p>
+  <pre><code># CORRECT: only the records that actually enter this update's pipeline
+tracker.log_identification("New since last update", len(new_records))</code></pre>
+
+  <h2><span class="section-num">05</span>Limits / What You Cannot Do Yet</h2>
+  <div class="compare-grid">
+    <div class="compare-col cant">
+      <h4>Can't do yet</h4>
+      <ul>
+        <li>Track identity for records with no DOI — they're reprocessed every update, always, reported explicitly via <code>records_without_doi_always_reprocessed</code></li>
+        <li>Re-evaluate a previously-included record if screening criteria change between versions — old inclusions are never revisited</li>
+        <li>Run on a schedule by itself — <code>run_update()</code> is one manual call, not a cron job</li>
+      </ul>
+    </div>
+    <div class="compare-col can">
+      <h4>Can do</h4>
+      <ul>
+        <li>Persist real state between separate process runs and correctly diff against it</li>
+        <li>Process only genuinely new records, not the full historical corpus, on every update</li>
+        <li>Prove incrementality with two real, live, moments-apart update cycles — not simulated ones</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2><span class="section-num">06</span>Run It</h2>
+  <pre><code>python living_review.py</code></pre>
+  <p>Real output captured 2026-07-28 (deletes any existing state file
+  first, so your run starts clean too):</p>
+  <pre><code>All self-checks passed (no network required for these).
+
+Update run #1 (fresh state — everything found is new)
+  version=1  fetched=5  new=5  included_this_run=0
+  cumulative included across all versions so far: 0
+
+Update run #2 (run moments later — real state persisted from run #1)
+  version=2  fetched=5  new=0  included_this_run=0
+  cumulative included across all versions so far: 0
+
+  Real result, not staged: run #2 fetched the same live records PubMed
+  returned moments earlier, and correctly identified 0 (or very few) as
+  new, because state genuinely persisted between the two update() calls.</code></pre>
+
+  <h2><span class="section-num">07</span>Brain Exercise</h2>
+  <div class="brain-exercise">
+    <details>
+      <summary>Why did the original bug only show up on update #2, and never on update #1?</summary>
+      <div class="answer">
+        Because on update #1, every fetched record genuinely was new —
+        <code>new_records</code> and <code>records</code> were the exact
+        same list, by coincidence, since the state was empty. Logging
+        <code>len(records)</code> instead of <code>len(new_records)</code>
+        happened to produce the right number anyway, purely because there
+        was nothing yet to filter out. The bug was latent from the first
+        line of code — it just had no way to become visible until a
+        second update actually filtered something out. This is a very
+        common shape of real bug: correct-looking on the first run,
+        wrong the moment the code's actual assumption (that fetched and
+        new mean the same thing) stops holding.
+      </div>
+    </details>
+  </div>
+
+  <h2><span class="section-num">08</span>There Are No Dumb Questions</h2>
+  <div class="qa-entry">
+    <div class="q">What happens if PubMed's index somehow returns fewer results on a later update than an earlier one (a record gets retracted or removed)?</div>
+    <div class="a">This module's `seen_dois` only ever grows — nothing removes a DOI once it's been seen. A retracted record would simply never be flagged as new again; this module doesn't detect or handle retractions, a real gap worth knowing about for anything actually deployed long-term.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">Why does `UpdateReport` report `records_without_doi_always_reprocessed` instead of just silently reprocessing them?</div>
+    <div class="a">Because silently reprocessing them would hide a real accuracy gap — someone reading only the "new" count would have no way to know some of those "new" records might actually be repeats the system simply couldn't recognize. Naming the count directly is the same honesty principle as every other module's explicit Limits section, just expressed as a return value instead of prose.</div>
+  </div>
+  <div class="qa-entry">
+    <div class="q">Could this module's incremental pattern be reused for something other than a living review?</div>
+    <div class="a">Yes — anywhere a pipeline needs to process "what's changed since last time" instead of everything from scratch. Module 23's citation graph, run periodically, could use the identical state-diffing pattern to track newly-appearing citations without re-fetching the whole graph each time.</div>
+  </div>
+
+  <h2><span class="section-num">09</span>Track 2 Applied-Layer Reviews Complete — What's Next</h2>
+  <p>Six review types down: scoping, rapid, bibliometric, qualitative,
+  umbrella, and living. Two very different applied variants remain — not
+  review methodologies this time, but writing genres: Module 27 starts a
+  USENIX-style "Related Work" positioning section, built for a
+  systems/security conference paper rather than a systematic review.</p>
+
+  <div class="module-footer-nav">
+    <div class="prev"><a href="../25_umbrella_review_aggregator/tutorial.html">← Module 25: Umbrella Review Aggregator</a></div>
+    <div class="next"><a href="../27_related_work_comparison_matrix/tutorial.html">Module 27: Related-Work Comparison Matrix Builder →</a></div>
+  </div>
+</div>
+</body>
+</html>
