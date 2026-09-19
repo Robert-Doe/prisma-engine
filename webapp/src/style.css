@@ -1,0 +1,388 @@
+:root {
+  --bg: #0b0b0d;
+  --bg-elevated: #141416;
+  --bg-card: #18181b;
+  --text: #eeece6;
+  --text-dim: #9a9992;
+  --accent: #d4a017;
+  --accent-soft: rgba(212, 160, 23, 0.14);
+  --border: #2a2a2e;
+  --success: #4ade80;
+  --danger: #f87171;
+  --mono: 'JetBrains Mono', ui-monospace, monospace;
+  --display: 'Space Grotesk', system-ui, sans-serif;
+  --body: 'Inter', system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.06) 1px, transparent 1px) 0 0 / 24px 24px,
+    var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+}
+
+.wrap {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* --- Top bar --- */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.brand {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+}
+
+.brand .dot {
+  color: var(--accent);
+}
+
+.topnav {
+  display: flex;
+  gap: 20px;
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+.topnav a {
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.topnav a:hover {
+  color: var(--accent);
+}
+
+/* --- Hero --- */
+.hero {
+  padding: 56px 0 36px;
+}
+
+.hero h1 {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(28px, 5vw, 48px);
+  line-height: 1.08;
+  margin: 0 0 14px;
+  letter-spacing: -0.02em;
+}
+
+.hero h1 .accent {
+  color: var(--accent);
+}
+
+.hero p {
+  color: var(--text-dim);
+  font-size: 16px;
+  max-width: 640px;
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* --- Cards / demo layout --- */
+.demo {
+  padding: 12px 0 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.panes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 700px) {
+  .panes {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.card h2 {
+  font-family: var(--display);
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0 0 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card h2 .step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 11px;
+  font-family: var(--mono);
+}
+
+.card .subtitle {
+  color: var(--text-dim);
+  font-size: 13px;
+  margin: 0 0 14px;
+}
+
+textarea {
+  width: 100%;
+  min-height: 190px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.6;
+  padding: 12px;
+  resize: vertical;
+}
+
+textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+button {
+  font-family: var(--body);
+  font-weight: 600;
+  font-size: 13.5px;
+  border-radius: 8px;
+  padding: 10px 16px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.15s ease;
+}
+
+button.primary {
+  background: var(--accent);
+  color: #1a1204;
+  box-shadow: 0 0 0 0 var(--accent-soft);
+}
+
+button.primary:hover {
+  box-shadow: 0 0 0 6px var(--accent-soft);
+}
+
+button.secondary {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text);
+}
+
+button.secondary:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* --- Output panel --- */
+.output {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  padding: 14px;
+  overflow-x: auto;
+  min-height: 190px;
+}
+
+.output .placeholder {
+  color: var(--text-dim);
+}
+
+.match-row {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--border);
+  flex-wrap: wrap;
+}
+
+.match-row:last-child {
+  border-bottom: none;
+}
+
+.badge {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.badge.exact {
+  background: rgba(74, 222, 128, 0.14);
+  color: var(--success);
+}
+
+.badge.fuzzy {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.score {
+  color: var(--text-dim);
+}
+
+.summary-line {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  color: var(--text-dim);
+}
+
+.summary-line strong {
+  color: var(--text);
+}
+
+/* --- Flow section --- */
+.flow-card {
+  grid-column: 1 / -1;
+}
+
+.flow-card svg {
+  width: 100%;
+  height: auto;
+  background: #ffffff;
+  border-radius: 8px;
+  display: block;
+}
+
+.flow-scroll {
+  overflow-x: auto;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.stat-row {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stat .value {
+  font-family: var(--mono);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.stat .label {
+  font-size: 11.5px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.note {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 10px;
+  line-height: 1.5;
+}
+
+.note code {
+  font-family: var(--mono);
+  background: var(--bg-elevated);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+/* --- Footer --- */
+footer {
+  border-top: 1px solid var(--border);
+  padding: 22px 0 40px;
+  color: var(--text-dim);
+  font-size: 13px;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+footer a {
+  color: var(--text-dim);
+  text-decoration: none;
+}
+
+footer a:hover {
+  color: var(--accent);
+}
+
+@media (max-width: 380px) {
+  .hero {
+    padding: 40px 0 24px;
+  }
+  .card {
+    padding: 16px;
+  }
+}
