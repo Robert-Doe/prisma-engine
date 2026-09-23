@@ -56,7 +56,7 @@ app.innerHTML = `
     </div>
 
     <footer>
-      <span>PRISMA Engine — course-companion demo</span>
+      <span>PRISMA Engine, course-companion demo</span>
       <span>Deduplication + PRISMA flow, ported faithfully from the Python source</span>
     </footer>
   </div>
@@ -94,7 +94,7 @@ runDedupBtn.addEventListener('click', () => {
     dedupOutput.innerHTML =
       '<div class="summary-line">No duplicates found among <strong>' +
       records.length +
-      '</strong> records — all considered unique.</div>';
+      '</strong> records, all considered unique.</div>';
   } else {
     const rows = result.matches
       .map((m) => {
@@ -126,7 +126,7 @@ runFlowBtn.addEventListener('click', () => {
   tracker.logDeduplication(lastRecords.length - lastResult.uniqueRecords.length);
 
   // Same simulated screening split the course's own Module 7 demo uses
-  // (Modules 8-9, the real screening engine, aren't part of this port) —
+  // (Modules 8-9, the real screening engine, aren't part of this port),
   // a clearly-labeled synthetic split of the real deduplicated count.
   const n = lastResult.uniqueRecords.length;
   const excludedWrongPopulation = Math.floor(n / 3);
@@ -139,7 +139,7 @@ runFlowBtn.addEventListener('click', () => {
 
   tracker.validateConservation();
 
-  const svg = renderPrismaSvg(tracker, 'PRISMA Flow — your corpus');
+  const svg = renderPrismaSvg(tracker, 'PRISMA Flow, your corpus');
 
   flowOutput.innerHTML = `
     <div class="stat-row">

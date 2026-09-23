@@ -2,10 +2,10 @@
  * Faithful port of modules/track1/06_deduplication_engine/dedup_engine.py.
  *
  * Two passes over the corpus:
- *   1. Exact-DOI grouping (cheap, unambiguous) — normalize away URL
+ *   1. Exact-DOI grouping (cheap, unambiguous), normalize away URL
  *      prefixes and case, then group by exact match.
  *   2. Fuzzy title + author matching on whatever pass 1 didn't already
- *      remove — Ratcliff/Obershelp title similarity (see similarity.ts)
+ *      remove, Ratcliff/Obershelp title similarity (see similarity.ts)
  *      gated by a Jaccard last-name-overlap guard, exactly like the
  *      Python original.
  *
@@ -38,7 +38,7 @@ function lastNames(authors: string[]): Set<string> {
   const names = new Set<string>();
   for (const a of authors) {
     // Handles both "Smith, Jane" (RIS/BibTeX/Crossref) and "Smith J"
-    // (PubMed) shapes — take the first comma-or-space-delimited token.
+    // (PubMed) shapes, take the first comma-or-space-delimited token.
     const token = a.trim().split(/[,\s]/)[0].toLowerCase();
     if (token) names.add(token);
   }

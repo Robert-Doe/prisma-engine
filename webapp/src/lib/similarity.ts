@@ -5,7 +5,7 @@
  * This is the Ratcliff/Obershelp algorithm: recursively find the longest
  * contiguous matching block between two strings, then recurse on the
  * left and right remainders, summing matched-character counts. The final
- * ratio is 2 * matches / (len(a) + len(b)) — exactly what CPython's
+ * ratio is 2 * matches / (len(a) + len(b)), exactly what CPython's
  * difflib computes (autojunk is a no-op here: it only ever kicks in for
  * sequences of 200+ characters, far longer than any paper title).
  */

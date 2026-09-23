@@ -7,7 +7,7 @@
  * "Reports assessed for eligibility") and same fill colors as the real
  * generator. This demo only logs identification/dedup/screening (see
  * flow.ts), so it renders the same *partial* diagram the Python
- * generator itself renders when eligibility hasn't been logged yet —
+ * generator itself renders when eligibility hasn't been logged yet,
  * that graceful partial-render path is exercised in the original's own
  * self-checks.
  */

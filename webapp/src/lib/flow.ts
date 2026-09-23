@@ -6,7 +6,7 @@
  * names exactly which stage is unbalanced). The web demo only drives it
  * through identification -> deduplication -> screening, which is exactly
  * what the module's own bundled demo does (its comment: "Modules 8-9
- * don't exist yet") — screening exclusions are a clearly-labeled
+ * don't exist yet"), screening exclusions are a clearly-labeled
  * synthetic split of the real deduplicated count, not a fabricated
  * screening algorithm.
  */
