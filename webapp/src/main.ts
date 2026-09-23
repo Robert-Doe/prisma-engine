@@ -19,10 +19,10 @@ app.innerHTML = `
     <div class="hero">
       <h1>Systematic Review <span class="accent">Pipeline</span></h1>
       <p>
-        A real, in-browser port of the PRISMA Engine course's core modules: the
-        exact-DOI + fuzzy-title deduplication engine (Module 6) and the PRISMA
-        flow-diagram generator (Module 12) — same algorithms, same stage names,
-        running on whatever bibliographic records you paste in below.
+        An in-browser port of two of the PRISMA Engine course's core modules: the
+        exact-DOI plus fuzzy-title deduplication engine (Module 6) and the PRISMA
+        flow-diagram generator (Module 12), running on whatever bibliographic
+        records you paste in below.
       </p>
     </div>
 
